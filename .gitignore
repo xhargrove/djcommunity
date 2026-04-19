@@ -13,3 +13,6 @@ out/
 # OS / IDE
 .DS_Store
 *.log
+
+# TypeScript
+*.tsbuildinfo

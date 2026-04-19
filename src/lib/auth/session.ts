@@ -1,0 +1,23 @@
+import "server-only";
+
+import type { User } from "@supabase/supabase-js";
+
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+/**
+ * Canonical server-side current user (JWT / session backed).
+ * Use in Server Components, Server Actions, and Route Handlers only.
+ */
+export async function getCurrentUser(): Promise<User | null> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return null;
+  }
+
+  return user;
+}
