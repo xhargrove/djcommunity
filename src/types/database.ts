@@ -297,6 +297,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      rooms: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          description: string | null;
+          visibility: string;
+          room_type: string;
+          city_id: string | null;
+          created_by_profile_id: string;
+          member_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name: string;
+          description?: string | null;
+          visibility?: string;
+          room_type?: string;
+          city_id?: string | null;
+          created_by_profile_id: string;
+          member_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          name?: string;
+          description?: string | null;
+          visibility?: string;
+          room_type?: string;
+          city_id?: string | null;
+          created_by_profile_id?: string;
+          member_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      room_memberships: {
+        Row: {
+          room_id: string;
+          profile_id: string;
+          role: string;
+          joined_at: string;
+        };
+        Insert: {
+          room_id: string;
+          profile_id: string;
+          role?: string;
+          joined_at?: string;
+        };
+        Update: {
+          room_id?: string;
+          profile_id?: string;
+          role?: string;
+          joined_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -321,3 +384,6 @@ export type PostRow = Database["public"]["Tables"]["posts"]["Row"];
 export type PostMediaRow = Database["public"]["Tables"]["post_media"]["Row"];
 export type PostCommentRow = Database["public"]["Tables"]["post_comments"]["Row"];
 export type FollowRow = Database["public"]["Tables"]["follows"]["Row"];
+export type RoomRow = Database["public"]["Tables"]["rooms"]["Row"];
+export type RoomMembershipRow =
+  Database["public"]["Tables"]["room_memberships"]["Row"];

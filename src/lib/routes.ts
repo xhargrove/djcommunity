@@ -8,4 +8,7 @@ export const ROUTES = {
   onboarding: "/onboarding",
   profileEdit: "/profile/edit",
   postEdit: (id: string) => `/posts/${id}/edit`,
+  rooms: "/rooms",
+  roomsNew: "/rooms/new",
+  room: (slug: string) => `/rooms/${encodeURIComponent(slug)}`,
 } as const;
