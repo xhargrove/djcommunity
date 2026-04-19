@@ -360,6 +360,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      room_messages: {
+        Row: {
+          id: string;
+          room_id: string;
+          sender_profile_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          room_id: string;
+          sender_profile_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          room_id?: string;
+          sender_profile_id?: string;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -387,3 +411,4 @@ export type FollowRow = Database["public"]["Tables"]["follows"]["Row"];
 export type RoomRow = Database["public"]["Tables"]["rooms"]["Row"];
 export type RoomMembershipRow =
   Database["public"]["Tables"]["room_memberships"]["Row"];
+export type RoomMessageRow = Database["public"]["Tables"]["room_messages"]["Row"];

@@ -15,6 +15,8 @@ import {
   ROOM_VISIBILITY_LABELS,
 } from "@/lib/rooms/constants";
 import type { RoomType, RoomVisibility } from "@/lib/rooms/constants";
+import { RoomChat } from "@/components/rooms/room-chat";
+import { listRoomMessages } from "@/lib/rooms/messages-queries";
 import {
   getCityName,
   getMembership,
@@ -52,6 +54,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
   const isAdmin = membership?.role === "admin" || isOwner;
 
   const members = isMember ? await listRoomMembers(room.id) : [];
+  const initialMessages = isMember ? await listRoomMessages(room.id) : [];
   const cityName =
     room.city_id && room.room_type === "city"
       ? await getCityName(room.city_id)
@@ -117,8 +120,15 @@ export default async function RoomDetailPage({ params }: PageProps) {
         </section>
       ) : null}
 
-      {isMember ? (
+      {isMember && membership ? (
         <>
+          <RoomChat
+            roomId={room.id}
+            viewerProfileId={profile.id}
+            viewerRole={membership.role as "owner" | "admin" | "member"}
+            initialMessages={initialMessages}
+          />
+
           {isAdmin ? (
             <section className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
