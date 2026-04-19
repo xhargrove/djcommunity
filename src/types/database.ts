@@ -389,7 +389,22 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      discovery_trending_post_ids: {
+        Args: { p_days: number; p_limit: number };
+        Returns: string[];
+      };
+      discovery_trending_post_ids_for_city: {
+        Args: { p_city_id: string; p_days: number; p_limit: number };
+        Returns: string[];
+      };
+      discovery_rising_profile_ids: {
+        Args: {
+          p_scope_city_id: string | null;
+          p_days: number;
+          p_limit: number;
+        };
+        Returns: string[];
+      };
     };
     Enums: {
       [_ in never]: never;

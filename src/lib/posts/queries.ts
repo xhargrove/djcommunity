@@ -47,8 +47,10 @@ export type FeedItem = {
   comments: FeedComment[];
 };
 
+type ServerClient = Awaited<ReturnType<typeof createServerSupabaseClient>>;
+
 function publicUrlForStoragePath(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  supabase: ServerClient,
   storagePath: string,
 ): string {
   const { data } = supabase.storage.from("post_media").getPublicUrl(storagePath);
@@ -63,26 +65,15 @@ function countByPostId(rows: { post_id: string }[]): Map<string, number> {
   return m;
 }
 
-export async function listFeedPosts(
-  limit = 50,
-  viewerProfileId: string | null = null,
+async function hydrateFeedItems(
+  supabase: ServerClient,
+  postRows: PostRow[],
+  viewerProfileId: string | null,
 ): Promise<FeedItem[]> {
-  const supabase = await createServerSupabaseClient();
-
-  const { data: posts, error: postsErr } = await supabase
-    .from("posts")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (postsErr || !posts?.length) {
-    if (postsErr) {
-      console.error("listFeedPosts posts", postsErr);
-    }
+  if (postRows.length === 0) {
     return [];
   }
 
-  const postRows = posts as PostRow[];
   const profileIds = [...new Set(postRows.map((p) => p.profile_id))];
 
   const { data: profiles, error: profErr } = await supabase
@@ -91,7 +82,7 @@ export async function listFeedPosts(
     .in("id", profileIds);
 
   if (profErr || !profiles) {
-    console.error("listFeedPosts profiles", profErr);
+    console.error("hydrateFeedItems profiles", profErr);
     return [];
   }
 
@@ -237,6 +228,61 @@ export async function listFeedPosts(
 
     return { post, author, media, engagement, comments };
   });
+}
+
+export async function listFeedPosts(
+  limit = 50,
+  viewerProfileId: string | null = null,
+): Promise<FeedItem[]> {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: posts, error: postsErr } = await supabase
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (postsErr || !posts?.length) {
+    if (postsErr) {
+      console.error("listFeedPosts posts", postsErr);
+    }
+    return [];
+  }
+
+  const postRows = posts as PostRow[];
+  return hydrateFeedItems(supabase, postRows, viewerProfileId);
+}
+
+/**
+ * Hydrate feed items for specific posts, preserving the order of `postIds`.
+ */
+export async function listFeedPostsByIds(
+  postIds: string[],
+  viewerProfileId: string | null,
+): Promise<FeedItem[]> {
+  if (postIds.length === 0) {
+    return [];
+  }
+  const supabase = await createServerSupabaseClient();
+  const { data: posts, error } = await supabase
+    .from("posts")
+    .select("*")
+    .in("id", postIds);
+
+  if (error || !posts?.length) {
+    if (error) {
+      console.error("listFeedPostsByIds", error);
+    }
+    return [];
+  }
+
+  const rows = posts as PostRow[];
+  const orderMap = new Map(postIds.map((id, i) => [id, i] as const));
+  rows.sort(
+    (a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0),
+  );
+
+  return hydrateFeedItems(supabase, rows, viewerProfileId);
 }
 
 export async function getPostById(postId: string): Promise<PostRow | null> {

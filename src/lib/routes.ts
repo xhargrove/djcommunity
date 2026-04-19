@@ -11,4 +11,6 @@ export const ROUTES = {
   rooms: "/rooms",
   roomsNew: "/rooms/new",
   room: (slug: string) => `/rooms/${encodeURIComponent(slug)}`,
+  discover: "/discover",
+  discoverCity: (slug: string) => `/discover/${encodeURIComponent(slug)}`,
 } as const;

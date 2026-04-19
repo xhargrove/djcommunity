@@ -32,6 +32,12 @@ export function AppShell({
               Home
             </Link>
             <Link
+              href={ROUTES.discover}
+              className="text-zinc-400 hover:text-white"
+            >
+              Discover
+            </Link>
+            <Link
               href={ROUTES.rooms}
               className="text-zinc-400 hover:text-white"
             >
