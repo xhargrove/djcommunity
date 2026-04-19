@@ -159,6 +159,144 @@ export type Database = {
         };
         Relationships: [];
       };
+      posts: {
+        Row: {
+          id: string;
+          profile_id: string;
+          post_type: string;
+          caption: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          post_type: string;
+          caption: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          post_type?: string;
+          caption?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      post_media: {
+        Row: {
+          id: string;
+          post_id: string;
+          storage_path: string;
+          kind: string;
+          mime_type: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          storage_path: string;
+          kind: string;
+          mime_type: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          post_id?: string;
+          storage_path?: string;
+          kind?: string;
+          mime_type?: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      post_likes: {
+        Row: {
+          post_id: string;
+          profile_id: string;
+          created_at: string;
+        };
+        Insert: {
+          post_id: string;
+          profile_id: string;
+          created_at?: string;
+        };
+        Update: {
+          post_id?: string;
+          profile_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      post_saves: {
+        Row: {
+          post_id: string;
+          profile_id: string;
+          created_at: string;
+        };
+        Insert: {
+          post_id: string;
+          profile_id: string;
+          created_at?: string;
+        };
+        Update: {
+          post_id?: string;
+          profile_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      post_comments: {
+        Row: {
+          id: string;
+          post_id: string;
+          author_profile_id: string;
+          body: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          author_profile_id: string;
+          body: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          post_id?: string;
+          author_profile_id?: string;
+          body?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      follows: {
+        Row: {
+          follower_id: string;
+          following_id: string;
+          created_at: string;
+        };
+        Insert: {
+          follower_id: string;
+          following_id: string;
+          created_at?: string;
+        };
+        Update: {
+          follower_id?: string;
+          following_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -179,3 +317,7 @@ export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type CityRow = Database["public"]["Tables"]["cities"]["Row"];
 export type GenreRow = Database["public"]["Tables"]["genres"]["Row"];
 export type DjTypeRow = Database["public"]["Tables"]["dj_types"]["Row"];
+export type PostRow = Database["public"]["Tables"]["posts"]["Row"];
+export type PostMediaRow = Database["public"]["Tables"]["post_media"]["Row"];
+export type PostCommentRow = Database["public"]["Tables"]["post_comments"]["Row"];
+export type FollowRow = Database["public"]["Tables"]["follows"]["Row"];

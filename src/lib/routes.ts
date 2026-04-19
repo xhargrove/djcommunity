@@ -7,4 +7,5 @@ export const ROUTES = {
   root: "/",
   onboarding: "/onboarding",
   profileEdit: "/profile/edit",
+  postEdit: (id: string) => `/posts/${id}/edit`,
 } as const;

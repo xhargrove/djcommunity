@@ -2,9 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { FollowButton } from "@/components/engagement/follow-button";
 import { getCurrentUser } from "@/lib/auth/session";
 import { linksFromJson } from "@/lib/profile/links";
-import { getProfilePublicViewByHandle } from "@/lib/profile/queries";
+import { profilePublicPath } from "@/lib/profile/paths";
+import { getProfileByUserId, getProfilePublicViewByHandle } from "@/lib/profile/queries";
+import { getFollowCounts, isFollowing } from "@/lib/social/queries";
 import { ROUTES } from "@/lib/routes";
 
 type PageProps = {
@@ -37,7 +40,14 @@ export default async function PublicProfilePage({ params }: PageProps) {
   const { profile, cityName, djTypeLabel, genres } = view;
   const viewer = await getCurrentUser();
   const isOwner = viewer?.id === profile.user_id;
+  const viewerProfile = viewer ? await getProfileByUserId(viewer.id) : null;
+  const followCounts = await getFollowCounts(profile.id);
+  const viewerFollowsTarget =
+    viewerProfile != null
+      ? await isFollowing(viewerProfile.id, profile.id)
+      : false;
   const links = linksFromJson(profile.links);
+  const profilePath = profilePublicPath(profile.handle);
 
   return (
     <div className="min-h-dvh bg-[var(--background)]">
@@ -89,6 +99,16 @@ export default async function PublicProfilePage({ params }: PageProps) {
                 </>
               ) : null}
             </p>
+            <p className="text-xs text-zinc-500">
+              <span className="tabular-nums text-zinc-400">
+                {followCounts.followers}
+              </span>{" "}
+              followers ·{" "}
+              <span className="tabular-nums text-zinc-400">
+                {followCounts.following}
+              </span>{" "}
+              following
+            </p>
             {isOwner ? (
               <Link
                 href={ROUTES.profileEdit}
@@ -96,7 +116,15 @@ export default async function PublicProfilePage({ params }: PageProps) {
               >
                 Edit your profile
               </Link>
-            ) : null}
+            ) : (
+              <FollowButton
+                targetProfileId={profile.id}
+                initialFollowing={viewerFollowsTarget}
+                viewerProfileId={viewerProfile?.id ?? null}
+                isLoggedIn={!!viewer}
+                loginNextPath={profilePath}
+              />
+            )}
           </div>
         </div>
 
