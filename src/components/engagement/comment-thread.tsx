@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { deleteCommentAction } from "@/actions/engagement";
+import { InlineReportControl } from "@/components/trust/inline-report";
 import type { FeedComment } from "@/lib/posts/queries";
 import { profilePublicPath } from "@/lib/profile/paths";
 
@@ -40,7 +41,7 @@ function DeleteCommentControl({
   return (
     <div className="flex flex-col items-end gap-0.5">
       {error ? (
-        <span className="text-[10px] text-red-400">{error}</span>
+        <span className="text-[10px] text-red-600">{error}</span>
       ) : null}
       <button
         type="button"
@@ -56,7 +57,7 @@ function DeleteCommentControl({
             }
           });
         }}
-        className="text-[10px] text-zinc-500 hover:text-red-400 disabled:opacity-50"
+        className="text-[10px] text-zinc-500 hover:text-red-600 disabled:opacity-50"
       >
         {pending ? "…" : "Delete"}
       </button>
@@ -69,7 +70,7 @@ export function CommentThread({
   viewerProfileId,
 }: {
   comments: FeedComment[];
-  viewerProfileId: string;
+  viewerProfileId: string | null;
 }) {
   if (comments.length === 0) {
     return (
@@ -82,9 +83,9 @@ export function CommentThread({
       {comments.map((c) => (
         <li
           key={c.id}
-          className="flex gap-2 rounded-md border border-zinc-800/80 bg-zinc-900/30 px-2 py-2"
+          className="flex gap-2 rounded-xl border border-zinc-200 bg-white px-2.5 py-2.5 shadow-sm"
         >
-          <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-zinc-800">
+          <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-zinc-200">
             {c.author.avatar_url ? (
               <Image
                 src={c.author.avatar_url}
@@ -100,13 +101,13 @@ export function CommentThread({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
-              <span className="text-xs font-medium text-zinc-200">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-xs font-medium text-zinc-900">
                 {c.author.display_name}
               </span>
               <Link
                 href={profilePublicPath(c.author.handle)}
-                className="text-[10px] text-zinc-500 hover:text-zinc-300"
+                className="text-[10px] text-zinc-500 hover:text-zinc-800"
               >
                 @{c.author.handle}
               </Link>
@@ -114,14 +115,26 @@ export function CommentThread({
                 {formatCommentTime(c.created_at)}
               </span>
             </div>
-            <p className="mt-1 whitespace-pre-wrap text-xs text-zinc-300">
+            <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-zinc-700">
               {c.body}
             </p>
           </div>
-          <DeleteCommentControl
-            commentId={c.id}
-            canDelete={c.author.profile_id === viewerProfileId}
-          />
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            {viewerProfileId !== null &&
+            c.author.profile_id !== viewerProfileId ? (
+              <InlineReportControl
+                targetKind="post_comment"
+                targetId={c.id}
+              />
+            ) : null}
+            <DeleteCommentControl
+              commentId={c.id}
+              canDelete={
+                viewerProfileId !== null &&
+                c.author.profile_id === viewerProfileId
+              }
+            />
+          </div>
         </li>
       ))}
     </ul>

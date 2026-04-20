@@ -12,7 +12,7 @@ export function LogoutButton() {
       type="button"
       disabled={pending}
       onClick={() => startTransition(() => signOutAction())}
-      className="rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-1.5 text-xs font-medium text-[var(--foreground)] hover:bg-zinc-800 disabled:opacity-50"
+      className="rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-50"
     >
       {pending ? "Signing out…" : "Log out"}
     </button>

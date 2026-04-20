@@ -45,3 +45,9 @@ export const createRoomSchema = z.object({
 );
 
 export type CreateRoomInput = z.infer<typeof createRoomSchema>;
+
+export const updateRoomVisibilitySchema = z.object({
+  visibility: z.enum(vis),
+});
+
+export type UpdateRoomVisibilityInput = z.infer<typeof updateRoomVisibilitySchema>;

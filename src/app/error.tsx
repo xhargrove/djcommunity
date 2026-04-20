@@ -11,7 +11,9 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    if (process.env.NODE_ENV === "development") {
+      console.error(error);
+    }
   }, [error]);
 
   return (
@@ -24,7 +26,7 @@ export default function GlobalError({
           An unexpected error occurred. You can try again or return home.
         </p>
         {process.env.NODE_ENV === "development" && (
-          <pre className="mt-4 max-h-40 overflow-auto rounded-md border border-[var(--border)] bg-zinc-950 p-3 text-left text-xs text-zinc-400">
+          <pre className="mt-4 max-h-40 overflow-auto rounded-md border border-[var(--border)] bg-zinc-50 p-3 text-left text-xs text-zinc-600">
             {error.message}
           </pre>
         )}
@@ -33,13 +35,13 @@ export default function GlobalError({
         <button
           type="button"
           onClick={() => reset()}
-          className="rounded-md border border-[var(--border)] bg-zinc-900 px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-zinc-800"
+          className="rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-zinc-800 shadow-sm hover:bg-zinc-50"
         >
           Try again
         </button>
         <Link
           href="/"
-          className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white"
+          className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
         >
           Home
         </Link>

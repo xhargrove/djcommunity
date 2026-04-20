@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { getCurrentUser } from "@/lib/auth/session";
+import { logServerError } from "@/lib/observability/server-log";
 import { normalizeHandleInput } from "@/lib/profile/handle";
 import { getProfileByHandle, getProfileByUserId } from "@/lib/profile/queries";
 import {
   createRoomSchema,
+  updateRoomVisibilitySchema,
 } from "@/lib/rooms/schema";
 import {
   getMembership,
@@ -95,7 +97,7 @@ export async function createRoomAction(
     if (roomErr?.code === "23505") {
       return { ok: false, error: "That slug is already taken. Choose another." };
     }
-    console.error("createRoom", roomErr);
+    logServerError("createRoom", roomErr, "rooms");
     return { ok: false, error: roomErr?.message ?? "Could not create room." };
   }
 
@@ -106,7 +108,7 @@ export async function createRoomAction(
   } as never);
 
   if (memErr) {
-    console.error("createRoom membership", memErr);
+    logServerError("createRoom membership", memErr, "rooms");
     await supabase.from("rooms").delete().eq("id", created.id);
     return {
       ok: false,
@@ -116,6 +118,63 @@ export async function createRoomAction(
 
   revalidateRoom(parsed.data.slug);
   return { ok: true, slug: parsed.data.slug };
+}
+
+export async function updateRoomVisibilityAction(
+  roomId: string,
+  visibilityRaw: string,
+): Promise<RoomActionResult> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "Sign in required." };
+  }
+
+  const profile = await getProfileByUserId(user.id);
+  if (!profile) {
+    return { ok: false, error: "No profile." };
+  }
+
+  const parsed = updateRoomVisibilitySchema.safeParse({
+    visibility: visibilityRaw,
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid visibility.",
+    };
+  }
+
+  const room = await getRoomById(roomId);
+  if (!room) {
+    return { ok: false, error: "Room not found." };
+  }
+
+  const m = await getMembership(roomId, profile.id);
+  if (!m || (m.role !== "owner" && m.role !== "admin")) {
+    return {
+      ok: false,
+      error: "Only the room owner or an admin can change visibility.",
+    };
+  }
+
+  if (room.visibility === parsed.data.visibility) {
+    return { ok: true };
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase
+    .from("rooms")
+    .update({ visibility: parsed.data.visibility } as never)
+    .eq("id", roomId);
+
+  if (error) {
+    logServerError("updateRoomVisibility", error, "rooms");
+    return { ok: false, error: error.message };
+  }
+
+  revalidateRoom(room.slug);
+  revalidatePath(ROUTES.explore, "layout");
+  return { ok: true };
 }
 
 export async function joinRoomAction(roomId: string): Promise<RoomActionResult> {

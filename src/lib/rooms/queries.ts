@@ -1,11 +1,89 @@
 import "server-only";
 
+import { logServerError } from "@/lib/observability/server-log";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ProfileRow, RoomMembershipRow, RoomRow } from "@/types/database";
 
 export type RoomListItem = RoomRow & {
   creator_handle: string | null;
 };
+
+/** Rooms the profile has joined; RLS may hide rows the viewer cannot see. */
+export type RoomJoinedItem = RoomListItem & {
+  membership_role: RoomMembershipRow["role"];
+  joined_at: string;
+};
+
+export async function listRoomsJoinedByProfile(
+  profileId: string,
+  limit = 16,
+): Promise<RoomJoinedItem[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data: mships, error: mErr } = await supabase
+    .from("room_memberships")
+    .select("room_id, role, joined_at")
+    .eq("profile_id", profileId)
+    .order("joined_at", { ascending: false })
+    .limit(limit);
+
+  if (mErr || !mships?.length) {
+    if (mErr) {
+      logServerError("listRoomsJoinedByProfile memberships", mErr, "rooms");
+    }
+    return [];
+  }
+
+  const mrows = mships as Pick<
+    RoomMembershipRow,
+    "room_id" | "role" | "joined_at"
+  >[];
+  const roomIds = mrows.map((m) => m.room_id);
+
+  const { data: roomRows, error: rErr } = await supabase
+    .from("rooms")
+    .select("*")
+    .in("id", roomIds);
+
+  if (rErr || !roomRows?.length) {
+    if (rErr) {
+      logServerError("listRoomsJoinedByProfile rooms", rErr, "rooms");
+    }
+    return [];
+  }
+
+  const roomMap = new Map((roomRows as RoomRow[]).map((r) => [r.id, r]));
+  const creatorIds = [
+    ...new Set(
+      (roomRows as RoomRow[]).map((r) => r.created_by_profile_id),
+    ),
+  ];
+  const { data: creators } = await supabase
+    .from("profiles")
+    .select("id, handle")
+    .in("id", creatorIds);
+
+  const handleMap = new Map(
+    ((creators ?? []) as Pick<ProfileRow, "id" | "handle">[]).map((p) => [
+      p.id,
+      p.handle,
+    ]),
+  );
+
+  return mrows
+    .map((m) => {
+      const r = roomMap.get(m.room_id);
+      if (!r) {
+        return null;
+      }
+      return {
+        ...r,
+        creator_handle: handleMap.get(r.created_by_profile_id) ?? null,
+        membership_role: m.role,
+        joined_at: m.joined_at,
+      };
+    })
+    .filter((x): x is RoomJoinedItem => x !== null);
+}
 
 export async function listVisibleRooms(): Promise<RoomListItem[]> {
   const supabase = await createServerSupabaseClient();
@@ -15,7 +93,7 @@ export async function listVisibleRooms(): Promise<RoomListItem[]> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("listVisibleRooms", error);
+    logServerError("listVisibleRooms", error, "rooms");
     return [];
   }
 
@@ -63,7 +141,7 @@ export async function getRoomById(roomId: string): Promise<RoomRow | null> {
     .maybeSingle();
 
   if (error) {
-    console.error("getRoomById", error);
+    logServerError("getRoomById", error, "rooms");
     return null;
   }
   return data as RoomRow | null;
@@ -81,7 +159,7 @@ export async function getRoomBySlug(
     .maybeSingle();
 
   if (error) {
-    console.error("getRoomBySlug", error);
+    logServerError("getRoomBySlug", error, "rooms");
     return null;
   }
   return data as RoomRow | null;
@@ -100,7 +178,7 @@ export async function getMembership(
     .maybeSingle();
 
   if (error) {
-    console.error("getMembership", error);
+    logServerError("getMembership", error, "rooms");
     return null;
   }
   return data as RoomMembershipRow | null;
@@ -127,7 +205,7 @@ export async function listRoomMembers(
 
   if (error || !mships?.length) {
     if (error) {
-      console.error("listRoomMembers", error);
+      logServerError("listRoomMembers", error, "rooms");
     }
     return [];
   }

@@ -120,6 +120,8 @@ export type Database = {
           booking_contact: string | null;
           avatar_url: string | null;
           banner_url: string | null;
+          /** `member` | `admin` | `owner` — only changeable via service_role. */
+          site_role: string;
           created_at: string;
           updated_at: string;
         };
@@ -137,6 +139,7 @@ export type Database = {
           booking_contact?: string | null;
           avatar_url?: string | null;
           banner_url?: string | null;
+          site_role?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -154,6 +157,7 @@ export type Database = {
           booking_contact?: string | null;
           avatar_url?: string | null;
           banner_url?: string | null;
+          site_role?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -165,6 +169,7 @@ export type Database = {
           profile_id: string;
           post_type: string;
           caption: string;
+          media_aspect_ratio: string;
           created_at: string;
           updated_at: string;
         };
@@ -173,6 +178,7 @@ export type Database = {
           profile_id: string;
           post_type: string;
           caption: string;
+          media_aspect_ratio?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -181,6 +187,7 @@ export type Database = {
           profile_id?: string;
           post_type?: string;
           caption?: string;
+          media_aspect_ratio?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -384,6 +391,168 @@ export type Database = {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          recipient_profile_id: string;
+          actor_profile_id: string;
+          type: string;
+          post_id: string | null;
+          comment_id: string | null;
+          room_id: string | null;
+          room_message_id: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          recipient_profile_id: string;
+          actor_profile_id: string;
+          type: string;
+          post_id?: string | null;
+          comment_id?: string | null;
+          room_id?: string | null;
+          room_message_id?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          recipient_profile_id?: string;
+          actor_profile_id?: string;
+          type?: string;
+          post_id?: string | null;
+          comment_id?: string | null;
+          room_id?: string | null;
+          room_message_id?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      profile_blocks: {
+        Row: {
+          blocker_profile_id: string;
+          blocked_profile_id: string;
+          created_at: string;
+        };
+        Insert: {
+          blocker_profile_id: string;
+          blocked_profile_id: string;
+          created_at?: string;
+        };
+        Update: {
+          blocker_profile_id?: string;
+          blocked_profile_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      content_reports: {
+        Row: {
+          id: string;
+          reporter_profile_id: string;
+          target_kind: string;
+          target_id: string;
+          note: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          reporter_profile_id: string;
+          target_kind: string;
+          target_id: string;
+          note?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          reporter_profile_id?: string;
+          target_kind?: string;
+          target_id?: string;
+          note?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      content_report_triage: {
+        Row: {
+          report_id: string;
+          staff_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by_profile_id: string | null;
+        };
+        Insert: {
+          report_id: string;
+          staff_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by_profile_id?: string | null;
+        };
+        Update: {
+          report_id?: string;
+          staff_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by_profile_id?: string | null;
+        };
+        Relationships: [];
+      };
+      account_deletion_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          profile_id: string;
+          status: string;
+          message: string | null;
+          created_at: string;
+          updated_at: string;
+          staff_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by_profile_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          profile_id: string;
+          status?: string;
+          message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          staff_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by_profile_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          profile_id?: string;
+          status?: string;
+          message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          staff_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by_profile_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "account_deletion_requests_profile_id_fkey",
+            columns: ["profile_id"],
+            isOneToOne: false,
+            referencedRelation: "profiles",
+            referencedColumns: ["id"],
+          },
+          {
+            foreignKeyName: "account_deletion_requests_reviewed_by_profile_id_fkey",
+            columns: ["reviewed_by_profile_id"],
+            isOneToOne: false,
+            referencedRelation: "profiles",
+            referencedColumns: ["id"],
+          },
+        ],
+      };
     };
     Views: {
       [_ in never]: never;
@@ -427,3 +596,10 @@ export type RoomRow = Database["public"]["Tables"]["rooms"]["Row"];
 export type RoomMembershipRow =
   Database["public"]["Tables"]["room_memberships"]["Row"];
 export type RoomMessageRow = Database["public"]["Tables"]["room_messages"]["Row"];
+export type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];
+export type ProfileBlockRow = Database["public"]["Tables"]["profile_blocks"]["Row"];
+export type ContentReportRow = Database["public"]["Tables"]["content_reports"]["Row"];
+export type ContentReportTriageRow =
+  Database["public"]["Tables"]["content_report_triage"]["Row"];
+export type AccountDeletionRequestRow =
+  Database["public"]["Tables"]["account_deletion_requests"]["Row"];

@@ -35,7 +35,7 @@ export default async function EditPostPage({ params }: PageProps) {
       <div>
         <Link
           href={ROUTES.home}
-          className="text-xs text-zinc-500 hover:text-zinc-300"
+          className="text-xs text-zinc-600 hover:text-zinc-900"
         >
           ← Back to feed
         </Link>

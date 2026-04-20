@@ -25,7 +25,7 @@ export default async function NewRoomPage() {
       <div>
         <Link
           href={ROUTES.rooms}
-          className="text-xs text-zinc-500 hover:text-zinc-300"
+          className="text-xs text-zinc-600 hover:text-zinc-900"
         >
           ← Rooms
         </Link>

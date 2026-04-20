@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import { addCommentAction } from "@/actions/engagement";
@@ -12,9 +13,9 @@ function SubmitCommentButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 disabled:opacity-50"
+      className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-100 disabled:opacity-50"
     >
-      {pending ? "Posting…" : "Comment"}
+      {pending ? "Posting…" : "Reply"}
     </button>
   );
 }
@@ -22,7 +23,7 @@ function SubmitCommentButton() {
 export function CommentForm({ postId }: { postId: string }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction] = useFormState(addCommentAction, undefined);
+  const [state, formAction] = useActionState(addCommentAction, undefined);
 
   useEffect(() => {
     if (state?.ok) {
@@ -42,11 +43,11 @@ export function CommentForm({ postId }: { postId: string }) {
         name="body"
         rows={2}
         maxLength={2000}
-        placeholder="Add a comment…"
-        className="w-full rounded-md border border-zinc-800 bg-zinc-900/80 px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600"
+        placeholder="Reply to this thread..."
+        className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-200"
       />
       {state && !state.ok ? (
-        <p className="text-[11px] text-red-400" role="alert">
+        <p className="text-[11px] text-red-600" role="alert">
           {state.error}
         </p>
       ) : null}

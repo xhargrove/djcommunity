@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getCurrentUser } from "@/lib/auth/session";
+import { logServerError } from "@/lib/observability/server-log";
 import { profilePayloadSchema, type ProfilePayload } from "@/lib/profile/schema";
 import { getProfileByUserId } from "@/lib/profile/queries";
 import { profilePublicPath } from "@/lib/profile/paths";
@@ -114,7 +115,7 @@ export async function createProfileAction(
     if (error.code === "23505") {
       return { ok: false, error: mapUniqueViolation(error.message) };
     }
-    console.error("createProfile", error);
+    logServerError("createProfile", error, "profile");
     return { ok: false, error: error.message };
   }
 
@@ -125,7 +126,7 @@ export async function createProfileAction(
   try {
     await syncProfileGenres(created.id, parsed.data.genre_ids);
   } catch (e) {
-    console.error("syncProfileGenres", e);
+    logServerError("syncProfileGenres", e, "profile");
     await supabase.from("profiles").delete().eq("id", created.id);
     return {
       ok: false,
@@ -178,14 +179,14 @@ export async function updateProfileAction(
     if (error.code === "23505") {
       return { ok: false, error: mapUniqueViolation(error.message) };
     }
-    console.error("updateProfile", error);
+    logServerError("updateProfile", error, "profile");
     return { ok: false, error: error.message };
   }
 
   try {
     await syncProfileGenres(existing.id, parsed.data.genre_ids);
   } catch (e) {
-    console.error("syncProfileGenres", e);
+    logServerError("syncProfileGenres", e, "profile");
     return { ok: false, error: "Profile saved but genres failed. Try again." };
   }
 
@@ -289,7 +290,7 @@ async function uploadProfileImage(
     });
 
   if (uploadError) {
-    console.error("upload", uploadError);
+    logServerError("upload", uploadError, "storage");
     return { ok: false, error: uploadError.message };
   }
 

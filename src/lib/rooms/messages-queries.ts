@@ -1,7 +1,8 @@
 import "server-only";
 
+import { logServerError } from "@/lib/observability/server-log";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { ProfileRow, RoomMessageRow } from "@/types/database";
+import type { ProfileRow, RoomMembershipRow, RoomMessageRow } from "@/types/database";
 
 export type RoomMessageView = {
   id: string;
@@ -13,6 +14,7 @@ export type RoomMessageView = {
     handle: string;
     display_name: string;
     avatar_url: string | null;
+    role: RoomMembershipRow["role"] | null;
   };
 };
 
@@ -43,7 +45,7 @@ export async function listRoomMessages(
     .limit(limit);
 
   if (error) {
-    console.error("listRoomMessages", error);
+    logServerError("listRoomMessages", error, "rooms");
     return [];
   }
 
@@ -56,10 +58,17 @@ export async function listRoomMessages(
   }
 
   const senderIds = [...new Set(msgs.map((m) => m.sender_profile_id))];
-  const { data: profs } = await supabase
-    .from("profiles")
-    .select("id, handle, display_name, avatar_url")
-    .in("id", senderIds);
+  const [{ data: profs }, { data: memberships }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, handle, display_name, avatar_url")
+      .in("id", senderIds),
+    supabase
+      .from("room_memberships")
+      .select("profile_id, role")
+      .eq("room_id", roomId)
+      .in("profile_id", senderIds),
+  ]);
 
   const pmap = new Map(
     (
@@ -68,6 +77,11 @@ export async function listRoomMessages(
         "id" | "handle" | "display_name" | "avatar_url"
       >[]
     ).map((p) => [p.id, p]),
+  );
+  const roleMap = new Map(
+    (
+      (memberships ?? []) as Pick<RoomMembershipRow, "profile_id" | "role">[]
+    ).map((m) => [m.profile_id, m.role]),
   );
 
   const out: RoomMessageView[] = msgs.map((m) => {
@@ -82,6 +96,7 @@ export async function listRoomMessages(
         handle: p?.handle ?? "?",
         display_name: p?.display_name ?? "Unknown",
         avatar_url: p?.avatar_url ?? null,
+        role: roleMap.get(m.sender_profile_id) ?? null,
       },
     };
   });

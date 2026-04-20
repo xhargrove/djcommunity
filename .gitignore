@@ -16,3 +16,7 @@ out/
 
 # TypeScript
 *.tsbuildinfo
+
+# Playwright
+playwright-report/
+test-results/

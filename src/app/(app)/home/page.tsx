@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { CreatePostForm } from "@/components/feed/create-post-form";
 import { FeedList } from "@/components/feed/feed-list";
+import { AppPageHeader } from "@/components/shell/app-page-header";
 import { getCurrentUser } from "@/lib/auth/session";
 import { listFeedPosts } from "@/lib/posts/queries";
 import { profilePublicPath } from "@/lib/profile/paths";
@@ -23,41 +23,35 @@ export default async function HomePage() {
   const feedItems = await listFeedPosts(50, profile.id);
 
   return (
-    <div className="space-y-10">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-          Feed
-        </h1>
-        <p className="max-w-prose text-sm leading-relaxed text-[var(--muted)]">
-          Signed in as{" "}
-          <span className="text-zinc-300">{profile.display_name}</span> (@
-          {profile.handle}). Posts from all DJs appear below, newest first.
-        </p>
-      </div>
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-10">
+      <AppPageHeader
+        eyebrow="Feed"
+        title="Home"
+        subtitle="Scene-first feed from people you follow and the network—newest up top. Post to Home, drop into Rooms for real-time chat, Explore to discover."
+        action={
+          <Link
+            href={ROUTES.create}
+            className="inline-flex min-h-11 min-w-[5.5rem] items-center justify-center rounded-full bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-amber-900/15 transition hover:bg-amber-700"
+          >
+            Create
+          </Link>
+        }
+      />
 
-      <CreatePostForm />
-
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-          Latest
-        </h2>
+      <section className="space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            For you · @{profile.handle}
+          </p>
+          <Link
+            href={profilePublicPath(profile.handle)}
+            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-800"
+          >
+            Profile
+          </Link>
+        </div>
         <FeedList items={feedItems} currentProfileId={profile.id} />
       </section>
-
-      <div className="flex flex-wrap gap-3 border-t border-[var(--border)] pt-8">
-        <Link
-          href={profilePublicPath(profile.handle)}
-          className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white"
-        >
-          View public profile
-        </Link>
-        <Link
-          href={ROUTES.profileEdit}
-          className="rounded-md border border-[var(--border)] bg-zinc-900 px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-zinc-800"
-        >
-          Edit profile
-        </Link>
-      </div>
     </div>
   );
 }

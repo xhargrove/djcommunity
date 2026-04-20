@@ -1,5 +1,6 @@
 import "server-only";
 
+import { logServerError } from "@/lib/observability/server-log";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type SupabaseServer = Awaited<ReturnType<typeof createServerSupabaseClient>>;
@@ -79,7 +80,7 @@ export async function getCityBySlug(slug: string): Promise<CityRow | null> {
     .maybeSingle();
 
   if (error) {
-    console.error("getCityBySlug", error);
+    logServerError("getCityBySlug", error, "discovery");
     return null;
   }
   return data as CityRow | null;
@@ -168,7 +169,7 @@ export async function searchProfiles(opts: {
     .limit(opts.limit);
 
   if (error) {
-    console.error("searchProfiles", error);
+    logServerError("searchProfiles", error, "discovery");
     return [];
   }
   return (data ?? []) as ProfileRow[];
@@ -197,7 +198,7 @@ export async function searchRooms(opts: {
       .order("created_at", { ascending: false })
       .limit(opts.limit);
     if (error) {
-      console.error("searchRooms public", error);
+      logServerError("searchRooms public", error, "discovery");
       return [];
     }
     return (data ?? []) as RoomRow[];
@@ -231,7 +232,7 @@ export async function searchRooms(opts: {
       .order("member_count", { ascending: false })
       .limit(opts.limit);
     if (error) {
-      console.error("searchRooms private", error);
+      logServerError("searchRooms private", error, "discovery");
       return [];
     }
     return (data ?? []) as RoomRow[];
@@ -287,7 +288,7 @@ async function searchPostIdsByCaption(opts: {
     .limit(opts.limit);
 
   if (error) {
-    console.error("searchPostIdsByCaption", error);
+    logServerError("searchPostIdsByCaption", error, "discovery");
     return [];
   }
   return (data ?? []).map((r) => (r as { id: string }).id);
@@ -385,7 +386,7 @@ export async function discoveryTrendingFeed(
     p_limit: limit,
   });
   if (error) {
-    console.error("discovery_trending_post_ids", error);
+    logServerError("discovery_trending_post_ids", error, "discovery");
     return [];
   }
   const postIds = ids ?? [];
@@ -404,7 +405,7 @@ export async function discoveryTrendingFeedForCity(
     { p_city_id: cityId, p_days: 7, p_limit: limit },
   );
   if (error) {
-    console.error("discovery_trending_post_ids_for_city", error);
+    logServerError("discovery_trending_post_ids_for_city", error, "discovery");
     return [];
   }
   const postIds = ids ?? [];
@@ -426,7 +427,7 @@ export async function discoveryRisingProfiles(
     },
   );
   if (error) {
-    console.error("discovery_rising_profile_ids", error);
+    logServerError("discovery_rising_profile_ids", error, "discovery");
     return [];
   }
   const list = ids ?? [];
@@ -438,7 +439,7 @@ export async function discoveryRisingProfiles(
     .select("*")
     .in("id", list);
   if (pErr || !profs) {
-    console.error("discoveryRisingProfiles profiles", pErr);
+    logServerError("discoveryRisingProfiles profiles", pErr, "discovery");
     return [];
   }
   const rows = (profs ?? []) as ProfileRow[];

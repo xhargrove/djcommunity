@@ -24,5 +24,10 @@ export function getSafeRedirectTarget(
     return fallback;
   }
 
+  // Hard reject malformed path-like payloads that can bypass naive checks.
+  if (decoded.includes("\\") || /[\u0000-\u001F]/.test(decoded)) {
+    return fallback;
+  }
+
   return decoded;
 }

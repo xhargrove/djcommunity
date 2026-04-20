@@ -1,6 +1,32 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
+import { getSiteOrigin } from "@/lib/meta/site";
 import { ROUTES } from "@/lib/routes";
+
+const defaultDescription =
+  "A network for DJs — profiles, feeds, rooms, and local discovery.";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const site = getSiteOrigin();
+  const canonical = site ? `${site}${ROUTES.root}` : undefined;
+  return {
+    title: "DJ Community Network",
+    description: defaultDescription,
+    alternates: canonical ? { canonical } : undefined,
+    openGraph: {
+      type: "website",
+      title: "DJ Community Network",
+      description: defaultDescription,
+      url: canonical,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "DJ Community Network",
+      description: defaultDescription,
+    },
+  };
+}
 
 export default function LandingPage() {
   return (
@@ -16,13 +42,13 @@ export default function LandingPage() {
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Link
           href={ROUTES.login}
-          className="rounded-md bg-zinc-100 px-5 py-2.5 text-sm font-medium text-zinc-950 hover:bg-white"
+          className="rounded-md bg-amber-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-700"
         >
           Log in
         </Link>
         <Link
           href={ROUTES.signUp}
-          className="rounded-md border border-[var(--border)] bg-zinc-900 px-5 py-2.5 text-sm font-medium text-[var(--foreground)] hover:bg-zinc-800"
+          className="rounded-md border border-[var(--border)] bg-white px-5 py-2.5 text-sm font-medium text-zinc-800 shadow-sm hover:bg-zinc-50"
         >
           Sign up
         </Link>

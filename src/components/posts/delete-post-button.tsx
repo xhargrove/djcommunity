@@ -13,7 +13,7 @@ export function DeletePostButton({ postId }: { postId: string }) {
   return (
     <div className="text-right">
       {error ? (
-        <p className="mb-1 max-w-[12rem] text-right text-[10px] text-red-400">
+        <p className="mb-1 max-w-[12rem] text-right text-[10px] text-red-600">
           {error}
         </p>
       ) : null}
@@ -31,7 +31,7 @@ export function DeletePostButton({ postId }: { postId: string }) {
             }
           });
         }}
-        className="text-xs text-red-400/90 hover:text-red-300 disabled:opacity-50"
+        className="text-xs text-red-600 hover:text-red-700 disabled:opacity-50"
       >
         {pending ? "Deleting…" : "Delete"}
       </button>

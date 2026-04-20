@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+import { getPrivateRouteRobots } from "@/lib/meta/indexing";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { robots: getPrivateRouteRobots() };
+}
+
 export default function AuthLayout({
   children,
 }: {

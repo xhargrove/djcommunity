@@ -72,7 +72,7 @@ export function ProfileMediaSection({
   }
 
   return (
-    <div className="space-y-6 rounded-lg border border-[var(--border)] bg-zinc-950/40 p-4">
+    <div className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-md shadow-zinc-200/40 ring-1 ring-zinc-100">
       <h2 className="text-sm font-semibold text-[var(--foreground)]">
         Profile images
       </h2>
@@ -98,12 +98,12 @@ export function ProfileMediaSection({
             name="avatar"
             accept="image/jpeg,image/png,image/webp,image/gif"
             disabled={pending}
-            className="block w-full max-w-xs text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1 file:text-zinc-200"
+            className="block w-full max-w-xs text-xs text-zinc-600 file:mr-2 file:rounded-full file:border file:border-zinc-200 file:bg-zinc-50 file:px-3 file:py-1.5 file:text-zinc-800 hover:file:bg-zinc-100"
           />
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-1.5 text-xs font-medium hover:bg-zinc-800 disabled:opacity-50"
+            className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-100 disabled:opacity-50"
           >
             {pending ? "Uploading…" : "Upload avatar"}
           </button>
@@ -124,13 +124,13 @@ export function ProfileMediaSection({
               name="banner"
               accept="image/jpeg,image/png,image/webp,image/gif"
               disabled={pending}
-              className="block w-full max-w-xs text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1 file:text-zinc-200"
+              className="block w-full max-w-xs text-xs text-zinc-600 file:mr-2 file:rounded-full file:border file:border-zinc-200 file:bg-zinc-50 file:px-3 file:py-1.5 file:text-zinc-800 hover:file:bg-zinc-100"
             />
           </div>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-1.5 text-xs font-medium hover:bg-zinc-800 disabled:opacity-50"
+            className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-100 disabled:opacity-50"
           >
             {pending ? "Uploading…" : "Upload banner"}
           </button>

@@ -3,16 +3,24 @@
 import { revalidatePath } from "next/cache";
 
 import { getCurrentUser } from "@/lib/auth/session";
+import { POST_CAROUSEL_MAX_MEDIA } from "@/lib/posts/constants";
 import {
   createPostSchema,
   updatePostSchema,
 } from "@/lib/posts/schema";
 import { getPostById, listMediaForPost } from "@/lib/posts/queries";
+import { logServerError } from "@/lib/observability/server-log";
 import { getProfileByUserId } from "@/lib/profile/queries";
+import {
+  USER_ACTION_RATE,
+  userActionRateLimitAllowed,
+} from "@/lib/rate-limit/user-action-rate-limit";
 import { ROUTES } from "@/lib/routes";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-export type PostFormState = { ok: true } | { ok: false; error: string };
+export type PostFormState =
+  | { ok: true; postId: string }
+  | { ok: false; error: string };
 
 const IMAGE_MIMES = new Set([
   "image/jpeg",
@@ -56,7 +64,7 @@ async function removeStoragePaths(paths: string[]): Promise<void> {
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.storage.from("post_media").remove(paths);
   if (error) {
-    console.error("removeStoragePaths", error);
+    logServerError("removeStoragePaths", error, "storage");
   }
 }
 
@@ -74,14 +82,30 @@ export async function createPostAction(
     return { ok: false, error: "Complete your profile before posting." };
   }
 
+  const aspectRaw = String(formData.get("media_aspect_ratio") ?? "").trim();
   const parsed = createPostSchema.safeParse({
     caption: String(formData.get("caption") ?? ""),
     post_type: String(formData.get("post_type") ?? ""),
+    media_aspect_ratio: aspectRaw === "" ? undefined : aspectRaw,
   });
   if (!parsed.success) {
     return {
       ok: false,
       error: parsed.error.issues[0]?.message ?? "Invalid post.",
+    };
+  }
+
+  if (
+    !(await userActionRateLimitAllowed(
+      user.id,
+      "post:create",
+      USER_ACTION_RATE.createPost.max,
+      USER_ACTION_RATE.createPost.windowMs,
+    ))
+  ) {
+    return {
+      ok: false,
+      error: "You're posting too quickly. Try again in a few minutes.",
     };
   }
 
@@ -91,6 +115,7 @@ export async function createPostAction(
     profile_id: profile.id,
     caption: parsed.data.caption,
     post_type: parsed.data.post_type,
+    media_aspect_ratio: parsed.data.media_aspect_ratio,
   };
 
   const { data: insertedRaw, error: insertErr } = await supabase
@@ -102,7 +127,7 @@ export async function createPostAction(
   const inserted = insertedRaw as { id: string } | null;
 
   if (insertErr || !inserted?.id) {
-    console.error("createPost insert", insertErr);
+    logServerError("createPost insert", insertErr, "database");
     return {
       ok: false,
       error: insertErr?.message ?? "Could not create post.",
@@ -110,71 +135,96 @@ export async function createPostAction(
   }
 
   const postId = inserted.id;
-  const file = formData.get("media");
+  const rawMedia = formData.getAll("media");
+  const files = rawMedia.filter(
+    (item): item is File => item instanceof File && item.size > 0,
+  );
 
-  if (!(file instanceof File) || file.size === 0) {
+  if (files.length === 0) {
     revalidatePath(ROUTES.home);
-    return { ok: true };
+    revalidatePath(ROUTES.create);
+    return { ok: true, postId };
   }
 
-  const mime = file.type || "application/octet-stream";
-  const kind = classifyMedia(mime);
-  if (!kind) {
+  if (files.length > POST_CAROUSEL_MAX_MEDIA) {
     await supabase.from("posts").delete().eq("id", postId);
     return {
       ok: false,
-      error: "Unsupported file type. Use JPG, PNG, WebP, GIF, MP4, WebM, or MOV.",
+      error: `You can attach up to ${POST_CAROUSEL_MAX_MEDIA} photos or videos per post.`,
     };
   }
 
-  if (file.size > maxBytesForKind(kind)) {
-    await supabase.from("posts").delete().eq("id", postId);
-    return {
-      ok: false,
-      error:
-        kind === "image"
-          ? "Image must be 8MB or smaller."
-          : "Video must be 50MB or smaller.",
-    };
+  for (const file of files) {
+    const mime = file.type || "application/octet-stream";
+    const kind = classifyMedia(mime);
+    if (!kind) {
+      await supabase.from("posts").delete().eq("id", postId);
+      return {
+        ok: false,
+        error:
+          "Unsupported file type. Use JPG, PNG, WebP, GIF, MP4, WebM, or MOV.",
+      };
+    }
+    if (file.size > maxBytesForKind(kind)) {
+      await supabase.from("posts").delete().eq("id", postId);
+      return {
+        ok: false,
+        error:
+          kind === "image"
+            ? "Each image must be 8MB or smaller."
+            : "Each video must be 50MB or smaller.",
+      };
+    }
   }
 
-  const ext = MIME_TO_EXT[mime] ?? (kind === "image" ? "jpg" : "mp4");
-  const mediaId = crypto.randomUUID();
-  const storagePath = `${user.id}/${postId}/${mediaId}.${ext}`;
+  const uploadedPaths: string[] = [];
 
-  const { error: upErr } = await supabase.storage
-    .from("post_media")
-    .upload(storagePath, file, {
-      upsert: false,
-      contentType: mime,
-    });
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const mime = file.type || "application/octet-stream";
+    const kind = classifyMedia(mime)!;
+    const ext = MIME_TO_EXT[mime] ?? (kind === "image" ? "jpg" : "mp4");
+    const mediaId = crypto.randomUUID();
+    const storagePath = `${user.id}/${postId}/${mediaId}.${ext}`;
 
-  if (upErr) {
-    console.error("createPost upload", upErr);
-    await supabase.from("posts").delete().eq("id", postId);
-    return { ok: false, error: upErr.message };
-  }
+    const { error: upErr } = await supabase.storage
+      .from("post_media")
+      .upload(storagePath, file, {
+        upsert: false,
+        contentType: mime,
+      });
 
-  const { error: mediaErr } = await supabase.from("post_media").insert({
-    post_id: postId,
-    storage_path: storagePath,
-    kind,
-    mime_type: mime,
-    sort_order: 0,
-  } as never);
+    if (upErr) {
+      logServerError("createPost upload", upErr, "storage");
+      await removeStoragePaths(uploadedPaths);
+      await supabase.from("posts").delete().eq("id", postId);
+      return { ok: false, error: upErr.message };
+    }
 
-  if (mediaErr) {
-    console.error("createPost post_media", mediaErr);
-    await removeStoragePaths([storagePath]);
-    await supabase.from("posts").delete().eq("id", postId);
-    return {
-      ok: false,
-      error: "Post was not saved. Try again.",
-    };
+    uploadedPaths.push(storagePath);
+
+    const { error: mediaErr } = await supabase.from("post_media").insert({
+      post_id: postId,
+      storage_path: storagePath,
+      kind,
+      mime_type: mime,
+      sort_order: i,
+    } as never);
+
+    if (mediaErr) {
+      logServerError("createPost post_media", mediaErr, "database");
+      await removeStoragePaths(uploadedPaths);
+      await supabase.from("posts").delete().eq("id", postId);
+      return {
+        ok: false,
+        error: "Post was not saved. Try again.",
+      };
+    }
   }
 
   revalidatePath(ROUTES.home);
-  return { ok: true };
+  revalidatePath(ROUTES.create);
+  return { ok: true, postId };
 }
 
 export type PostUpdateResult = { ok: true } | { ok: false; error: string };
@@ -219,7 +269,7 @@ export async function updatePostAction(
     .eq("id", parsed.data.post_id);
 
   if (error) {
-    console.error("updatePost", error);
+    logServerError("updatePost", error, "database");
     return { ok: false, error: error.message };
   }
 
@@ -255,7 +305,7 @@ export async function deletePostAction(postId: string): Promise<DeletePostResult
   const { error } = await supabase.from("posts").delete().eq("id", postId);
 
   if (error) {
-    console.error("deletePost", error);
+    logServerError("deletePost", error, "database");
     return { ok: false, error: error.message };
   }
 

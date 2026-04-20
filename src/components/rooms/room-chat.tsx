@@ -13,6 +13,7 @@ import {
   deleteRoomMessageAction,
   sendRoomMessageAction,
 } from "@/actions/room-messages";
+import { InlineReportControl } from "@/components/trust/inline-report";
 import type { RoomMessageView } from "@/lib/rooms/messages-queries";
 import { profilePublicPath } from "@/lib/profile/paths";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -32,6 +33,8 @@ function formatMsgTime(iso: string) {
 
 type Props = {
   roomId: string;
+  roomName: string;
+  roomSlug: string;
   viewerProfileId: string;
   viewerRole: "owner" | "admin" | "member";
   initialMessages: RoomMessageView[];
@@ -39,6 +42,8 @@ type Props = {
 
 export function RoomChat({
   roomId,
+  roomName,
+  roomSlug,
   viewerProfileId,
   viewerRole,
   initialMessages,
@@ -56,11 +61,17 @@ export function RoomChat({
   const canModerate = viewerRole === "owner" || viewerRole === "admin";
 
   const mergeMessage = useCallback((msg: RoomMessageView) => {
+    if (!msg.id) {
+      return;
+    }
+    if (seenIdsRef.current.has(msg.id)) {
+      return;
+    }
+    seenIdsRef.current.add(msg.id);
     setMessages((prev) => {
-      if (seenIdsRef.current.has(msg.id)) {
+      if (prev.some((m) => m.id === msg.id)) {
         return prev;
       }
-      seenIdsRef.current.add(msg.id);
       return [...prev, msg].sort((a, b) => {
         const t = a.created_at.localeCompare(b.created_at);
         if (t !== 0) {
@@ -74,28 +85,35 @@ export function RoomChat({
   const fetchSender = useCallback(
     async (senderProfileId: string): Promise<RoomMessageView["sender"] | null> => {
       const supabase = getBrowserSupabaseClient();
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, handle, display_name, avatar_url")
-        .eq("id", senderProfileId)
-        .maybeSingle();
+      const [{ data }, { data: membership }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, handle, display_name, avatar_url")
+          .eq("id", senderProfileId)
+          .maybeSingle(),
+        supabase
+          .from("room_memberships")
+          .select("role")
+          .eq("room_id", roomId)
+          .eq("profile_id", senderProfileId)
+          .maybeSingle(),
+      ]);
       const p = data as {
         id: string;
         handle: string;
         display_name: string;
         avatar_url: string | null;
       } | null;
-      if (!p) {
-        return null;
-      }
+      const m = membership as { role: "owner" | "admin" | "member" } | null;
       return {
-        profile_id: p.id,
-        handle: p.handle,
-        display_name: p.display_name,
-        avatar_url: p.avatar_url,
+        profile_id: senderProfileId,
+        handle: p?.handle ?? "?",
+        display_name: p?.display_name ?? "Unknown",
+        avatar_url: p?.avatar_url ?? null,
+        role: m?.role ?? null,
       };
     },
-    [],
+    [roomId],
   );
 
   useEffect(() => {
@@ -122,12 +140,27 @@ export function RoomChat({
             body: string;
             created_at: string;
           };
-          if (seenIdsRef.current.has(row.id)) {
+          if (!row?.id || seenIdsRef.current.has(row.id)) {
             return;
           }
-          const sender = await fetchSender(row.sender_profile_id);
-          if (!sender) {
-            return;
+          let sender: RoomMessageView["sender"];
+          try {
+            const loaded = await fetchSender(row.sender_profile_id);
+            sender = loaded ?? {
+              profile_id: row.sender_profile_id,
+              handle: "?",
+              display_name: "Member",
+              avatar_url: null,
+              role: null,
+            };
+          } catch {
+            sender = {
+              profile_id: row.sender_profile_id,
+              handle: "?",
+              display_name: "Member",
+              avatar_url: null,
+              role: null,
+            };
           }
           mergeMessage({
             id: row.id,
@@ -176,8 +209,7 @@ export function RoomChat({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
+  async function sendCurrentMessage() {
     const text = body.trim();
     if (!text || sending) {
       return;
@@ -192,9 +224,17 @@ export function RoomChat({
       }
       mergeMessage(r.message);
       setBody("");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not send message.";
+      setSendError(message);
     } finally {
       setSending(false);
     }
+  }
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    await sendCurrentMessage();
   }
 
   async function handleDelete(messageId: string) {
@@ -209,39 +249,61 @@ export function RoomChat({
   }
 
   return (
-    <section className="flex flex-col rounded-lg border border-[var(--border)] bg-zinc-950/40">
-      <div className="border-b border-[var(--border)] px-3 py-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+    <section className="flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-md shadow-zinc-200/40 ring-1 ring-zinc-100">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 bg-zinc-50/90 px-4 py-2.5 text-[11px] text-zinc-600">
+        <p>
+          Harassment, spam, and illegal content are not allowed. Owners and admins can remove
+          messages; serious issues can be escalated to the platform.
+        </p>
+        <div className="shrink-0">
+          <InlineReportControl
+            targetKind="room"
+            targetId={roomId}
+            label="Report room"
+          />
+        </div>
+      </div>
+      <div className="border-b border-zinc-100 px-4 py-3">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
           Chat
         </h2>
         <p className="text-[10px] text-zinc-600">
-          Live for members only. Messages stay after refresh.
+          {roomName} · /{roomSlug} · Live for members only
         </p>
       </div>
 
       {realtimeError ? (
-        <p className="border-b border-amber-900/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-200/90">
+          <p className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900">
           {realtimeError}
         </p>
       ) : null}
 
       <div
-        className="max-h-[min(420px,50vh)] min-h-[200px] overflow-y-auto px-3 py-3"
+        className="max-h-[min(440px,55vh)] min-h-[220px] overflow-y-auto bg-zinc-50/80 px-4 py-4"
         aria-live="polite"
         aria-relevant="additions"
       >
         {messages.length === 0 ? (
-          <p className="text-center text-sm text-zinc-600">
-            No messages yet. Say hello.
-          </p>
+          <div className="rounded-2xl border border-dashed border-zinc-200 bg-white px-4 py-10 text-center">
+            <p className="text-sm font-medium text-zinc-500">No messages yet</p>
+            <p className="mt-1 text-xs text-zinc-600">
+              Open the conversation with a set recap, flyer drop, or booking update.
+            </p>
+          </div>
         ) : (
           <ul className="space-y-4">
             {messages.map((m) => {
               const isOwn = m.sender.profile_id === viewerProfileId;
               const showDelete = isOwn || canModerate;
               return (
-                <li key={m.id} className="flex gap-2 text-sm">
-                  <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-zinc-800">
+                <li
+                  key={m.id}
+                  className={`flex gap-2 text-sm ${
+                    isOwn ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  {!isOwn ? (
+                  <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-zinc-200">
                     {m.sender.avatar_url ? (
                       <Image
                         src={m.sender.avatar_url}
@@ -256,33 +318,54 @@ export function RoomChat({
                       </div>
                     )}
                   </div>
+                  ) : null}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
-                      <span className="font-medium text-zinc-200">
+                      <span className="font-medium text-zinc-900">
                         {m.sender.display_name}
                       </span>
                       <Link
                         href={profilePublicPath(m.sender.handle)}
-                        className="text-[10px] text-zinc-500 hover:text-zinc-300"
+                        className="text-[10px] text-zinc-500 hover:text-zinc-800"
                       >
                         @{m.sender.handle}
                       </Link>
                       <span className="text-[10px] text-zinc-600">
                         {formatMsgTime(m.created_at)}
                       </span>
+                      {m.sender.role === "owner" || m.sender.role === "admin" ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900">
+                          Announcement
+                        </span>
+                      ) : null}
                     </div>
-                    <p className="mt-1 whitespace-pre-wrap break-words text-zinc-300">
+                    <p
+                      className={`mt-1 w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl px-3 py-2 ${
+                        isOwn
+                          ? "ml-auto bg-amber-100 text-zinc-900 ring-1 ring-amber-200"
+                          : "bg-white text-zinc-800 shadow-sm ring-1 ring-zinc-200"
+                      }`}
+                    >
                       {m.body}
                     </p>
-                    {showDelete ? (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(m.id)}
-                        className="mt-1 text-[10px] text-zinc-600 hover:text-red-400"
-                      >
-                        {isOwn ? "Delete" : "Remove"}
-                      </button>
-                    ) : null}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      {showDelete ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(m.id)}
+                          className="text-[10px] text-zinc-600 hover:text-red-600"
+                        >
+                          {isOwn ? "Delete" : "Remove"}
+                        </button>
+                      ) : null}
+                      {!isOwn ? (
+                        <InlineReportControl
+                          targetKind="room_message"
+                          targetId={m.id}
+                          label="Report"
+                        />
+                      ) : null}
+                    </div>
                   </div>
                 </li>
               );
@@ -292,12 +375,9 @@ export function RoomChat({
         <div ref={bottomRef} />
       </div>
 
-      <form
-        onSubmit={handleSend}
-        className="border-t border-[var(--border)] p-3"
-      >
+      <form onSubmit={handleSend} className="border-t border-zinc-100 p-3">
         {sendError ? (
-          <p className="mb-2 text-xs text-red-400" role="alert">
+          <p className="mb-2 text-xs text-red-600" role="alert">
             {sendError}
           </p>
         ) : null}
@@ -312,13 +392,25 @@ export function RoomChat({
           maxLength={4000}
           disabled={sending}
           placeholder="Write a message…"
-          className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 disabled:opacity-50"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              const text = body.trim();
+              if (!sending && text.length > 0) {
+                void sendCurrentMessage();
+              }
+            }
+          }}
+          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-200 disabled:opacity-50"
         />
-        <div className="mt-2 flex justify-end">
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <span className="text-[10px] text-zinc-600">
+            Enter to send, Shift+Enter for newline
+          </span>
           <button
             type="submit"
             disabled={sending || !body.trim()}
-            className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
+            className="min-h-11 min-w-[5.25rem] shrink-0 rounded-full bg-amber-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-amber-700 disabled:opacity-50"
           >
             {sending ? "Sending…" : "Send"}
           </button>

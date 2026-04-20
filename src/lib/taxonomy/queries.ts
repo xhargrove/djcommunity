@@ -1,5 +1,6 @@
 import "server-only";
 
+import { logServerError } from "@/lib/observability/server-log";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { CityRow, DjTypeRow, GenreRow } from "@/types/database";
 
@@ -12,7 +13,7 @@ export async function listCitiesOrdered(): Promise<CityRow[]> {
     .order("sort_order", { ascending: true });
 
   if (error) {
-    console.error("listCitiesOrdered", error);
+    logServerError("listCitiesOrdered", error, "database");
     return [];
   }
   return data ?? [];
@@ -26,7 +27,7 @@ export async function listGenresOrdered(): Promise<GenreRow[]> {
     .order("sort_order", { ascending: true });
 
   if (error) {
-    console.error("listGenresOrdered", error);
+    logServerError("listGenresOrdered", error, "database");
     return [];
   }
   return data ?? [];
@@ -40,7 +41,7 @@ export async function listDjTypesOrdered(): Promise<DjTypeRow[]> {
     .order("sort_order", { ascending: true });
 
   if (error) {
-    console.error("listDjTypesOrdered", error);
+    logServerError("listDjTypesOrdered", error, "database");
     return [];
   }
   return data ?? [];

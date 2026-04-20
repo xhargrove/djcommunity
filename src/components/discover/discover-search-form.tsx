@@ -24,7 +24,7 @@ export function DiscoverSearchForm({
     <form
       method="get"
       action={action}
-      className="space-y-4 rounded-lg border border-[var(--border)] bg-[var(--background)]/60 p-4"
+      className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-md shadow-zinc-200/40 ring-1 ring-zinc-100"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
         <label className="min-w-[200px] flex-1 space-y-1">
@@ -36,7 +36,7 @@ export function DiscoverSearchForm({
             type="search"
             defaultValue={defaultQuery}
             placeholder="Handles, names, rooms, captions…"
-            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-200"
             autoComplete="off"
           />
         </label>
@@ -49,7 +49,7 @@ export function DiscoverSearchForm({
             <select
               name="city"
               defaultValue={defaultCitySlug}
-              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none"
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-200"
             >
               <option value="">Any city</option>
               {taxonomy.cities.map((c) => (
@@ -64,7 +64,7 @@ export function DiscoverSearchForm({
             <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
               City
             </span>
-            <p className="rounded-md border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-sm text-zinc-300">
+            <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800">
               {taxonomy.cities.find((c) => c.slug === lockedCitySlug)?.name ??
                 lockedCitySlug}
             </p>
@@ -78,7 +78,7 @@ export function DiscoverSearchForm({
           <select
             name="genre"
             defaultValue={defaultGenreSlug}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-200"
           >
             <option value="">Any genre</option>
             {taxonomy.genres.map((g) => (
@@ -96,7 +96,7 @@ export function DiscoverSearchForm({
           <select
             name="djType"
             defaultValue={defaultDjTypeSlug}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-200"
           >
             <option value="">Any type</option>
             {taxonomy.djTypes.map((d) => (
@@ -109,7 +109,7 @@ export function DiscoverSearchForm({
 
         <button
           type="submit"
-          className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white"
+          className="rounded-full bg-amber-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-amber-900/15 transition hover:bg-amber-700"
         >
           Apply
         </button>

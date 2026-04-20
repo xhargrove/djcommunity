@@ -8,6 +8,8 @@ import {
   updateProfileAction,
   type ProfileActionResult,
 } from "@/actions/profile";
+import { PRODUCT_EVENTS } from "@/lib/analytics/events";
+import { trackProductEvent } from "@/lib/analytics/track-client";
 import { linksFromJson } from "@/lib/profile/links";
 import { profilePayloadSchema } from "@/lib/profile/schema";
 import { ROUTES } from "@/lib/routes";
@@ -18,6 +20,11 @@ export type ProfileTaxonomy = {
   genres: GenreRow[];
   djTypes: DjTypeRow[];
 };
+
+const fieldClass =
+  "w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-200 disabled:opacity-50";
+const cardClass =
+  "rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 ring-1 ring-zinc-100";
 
 function buildPayload(
   form: FormData,
@@ -149,6 +156,7 @@ export function ProfileForm({
       }
 
       if (mode === "create") {
+        trackProductEvent(PRODUCT_EVENTS.ONBOARDING_COMPLETE);
         router.push(ROUTES.home);
       }
       router.refresh();
@@ -157,6 +165,16 @@ export function ProfileForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-6">
+      {mode === "create" ? (
+        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/60 p-4 text-sm text-amber-950/90 ring-1 ring-amber-100">
+          <p className="font-semibold text-amber-950">Why we ask</p>
+          <ul className="mt-2 list-inside list-disc space-y-1.5 text-xs leading-relaxed text-amber-900/90">
+            <li>City powers Explore and local scene discovery—not a generic location field.</li>
+            <li>Genres and DJ type help other DJs and rooms surface you in context.</li>
+            <li>Your handle is your @ on DJCN; add avatar and banner right after this step.</li>
+          </ul>
+        </div>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1 sm:col-span-2">
           <label htmlFor="handle" className="text-xs font-medium text-zinc-400">
@@ -170,7 +188,7 @@ export function ProfileForm({
             disabled={pending}
             defaultValue={defaults.handle}
             autoComplete="off"
-            className="w-full rounded-md border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-zinc-600 read-only:cursor-not-allowed read-only:opacity-70 disabled:opacity-60"
+            className={`${fieldClass} read-only:cursor-not-allowed read-only:opacity-70 disabled:opacity-60`}
           />
           {mode === "edit" ? (
             <p className="text-xs text-zinc-500">
@@ -197,7 +215,7 @@ export function ProfileForm({
             required
             disabled={pending}
             defaultValue={defaults.display_name}
-            className="w-full rounded-md border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-zinc-600 disabled:opacity-50"
+            className={fieldClass}
           />
         </div>
 
@@ -211,7 +229,7 @@ export function ProfileForm({
             rows={4}
             disabled={pending}
             defaultValue={defaults.bio}
-            className="w-full rounded-md border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-zinc-600 disabled:opacity-50"
+            className={fieldClass}
           />
         </div>
 
@@ -225,7 +243,7 @@ export function ProfileForm({
             required
             disabled={pending}
             defaultValue={defaults.city_id}
-            className="w-full rounded-md border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-zinc-600 disabled:opacity-50"
+            className={fieldClass}
           >
             {taxonomy.cities.map((c) => (
               <option key={c.id} value={c.id}>
@@ -239,7 +257,7 @@ export function ProfileForm({
           <span className="text-xs font-medium text-zinc-400">
             Genres <span className="text-red-400">*</span>
           </span>
-          <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto rounded-md border border-[var(--border)] bg-zinc-950/50 p-3 sm:grid-cols-3">
+          <div className={`grid max-h-48 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3 ${cardClass}`}>
             {taxonomy.genres.map((g) => {
               const checked =
                 mode === "edit" ? initialGenreIds.includes(g.id) : false;
@@ -276,7 +294,7 @@ export function ProfileForm({
             required
             disabled={pending}
             defaultValue={defaults.dj_type_id}
-            className="w-full rounded-md border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-zinc-600 disabled:opacity-50"
+            className={fieldClass}
           >
             {taxonomy.djTypes.map((d) => (
               <option key={d.id} value={d.id}>
@@ -299,7 +317,7 @@ export function ProfileForm({
             rows={3}
             disabled={pending}
             defaultValue={defaults.gear_setup}
-            className="w-full rounded-md border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-zinc-600 disabled:opacity-50"
+            className={fieldClass}
           />
         </div>
 
@@ -322,7 +340,7 @@ export function ProfileForm({
               {links.map((link, i) => (
                 <li
                   key={i}
-                  className="flex flex-col gap-2 rounded-md border border-[var(--border)] bg-zinc-950/50 p-3 sm:flex-row"
+                className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 sm:flex-row"
                 >
                   <input
                     aria-label="Link label"
@@ -330,7 +348,7 @@ export function ProfileForm({
                     onChange={(ev) => updateLink(i, "label", ev.target.value)}
                     placeholder="Label"
                     disabled={pending}
-                    className="flex-1 rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm disabled:opacity-50"
+                    className="flex-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm text-zinc-900 disabled:opacity-50"
                   />
                   <input
                     aria-label="URL"
@@ -338,7 +356,7 @@ export function ProfileForm({
                     onChange={(ev) => updateLink(i, "url", ev.target.value)}
                     placeholder="https://"
                     disabled={pending}
-                    className="flex-[2] rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm disabled:opacity-50"
+                    className="flex-[2] rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm text-zinc-900 disabled:opacity-50"
                   />
                   <button
                     type="button"
@@ -368,7 +386,7 @@ export function ProfileForm({
             disabled={pending}
             defaultValue={defaults.featured_mix_link}
             placeholder="https://"
-            className="w-full rounded-md border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-zinc-600 disabled:opacity-50"
+            className={fieldClass}
           />
         </div>
 
@@ -385,7 +403,7 @@ export function ProfileForm({
             disabled={pending}
             defaultValue={defaults.booking_contact}
             placeholder="Email, phone, or booking URL"
-            className="w-full rounded-md border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-zinc-600 disabled:opacity-50"
+            className={fieldClass}
           />
         </div>
       </div>
@@ -393,7 +411,7 @@ export function ProfileForm({
       {error ? (
         <p
           role="alert"
-          className="rounded-md border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-200"
+          className="rounded-xl border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-200"
         >
           {error}
         </p>
@@ -402,7 +420,7 @@ export function ProfileForm({
       <button
         type="submit"
         disabled={pending}
-        className="w-fit rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
+        className="w-fit rounded-full bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-amber-900/15 transition hover:bg-amber-700 disabled:opacity-50"
       >
         {pending
           ? "Saving…"

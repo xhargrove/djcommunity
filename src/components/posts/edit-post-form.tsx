@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useEffect } from "react";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import { updatePostAction, type PostUpdateResult } from "@/actions/posts";
-import { POST_TYPE_LABELS, POST_TYPES, type PostType } from "@/lib/posts/constants";
+import {
+  POST_TYPE_LABELS,
+  POST_TYPES_EDITABLE,
+  type EditablePostType,
+} from "@/lib/posts/constants";
 import { ROUTES } from "@/lib/routes";
 import type { PostRow } from "@/types/database";
 
@@ -22,7 +26,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
+      className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
     >
       {pending ? "Saving…" : "Save changes"}
     </button>
@@ -31,7 +35,7 @@ function SubmitButton() {
 
 export function EditPostForm({ post }: { post: PostRow }) {
   const router = useRouter();
-  const [state, formAction] = useFormState(editFormAction, undefined);
+  const [state, formAction] = useActionState(editFormAction, undefined);
 
   useEffect(() => {
     if (state?.ok) {
@@ -53,7 +57,7 @@ export function EditPostForm({ post }: { post: PostRow }) {
           rows={5}
           maxLength={5000}
           defaultValue={post.caption}
-          className="w-full rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600"
+          className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-amber-300"
         />
       </div>
       <div className="space-y-1">
@@ -65,9 +69,9 @@ export function EditPostForm({ post }: { post: PostRow }) {
           name="post_type"
           required
           defaultValue={post.post_type}
-          className="w-full rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-600"
+          className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-300"
         >
-          {POST_TYPES.map((t: PostType) => (
+          {POST_TYPES_EDITABLE.map((t: EditablePostType) => (
             <option key={t} value={t}>
               {POST_TYPE_LABELS[t]}
             </option>

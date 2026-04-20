@@ -19,7 +19,7 @@ export function LikeButton({
   const [pending, startTransition] = useTransition();
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex items-center gap-2">
       <button
         type="button"
         disabled={pending}
@@ -34,17 +34,19 @@ export function LikeButton({
             }
           });
         }}
-        className={`rounded-md px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+        className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
           liked
-            ? "bg-rose-900/50 text-rose-200 hover:bg-rose-900/70"
-            : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            ? "border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100"
+            : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
         }`}
       >
         {pending ? "…" : liked ? "♥ Liked" : "♡ Like"}
       </button>
-      <span className="text-xs tabular-nums text-zinc-500">{likeCount}</span>
+      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] tabular-nums text-zinc-600">
+        {likeCount}
+      </span>
       {error ? (
-        <span className="text-[10px] text-red-400" role="alert">
+        <span className="text-[10px] text-red-600" role="alert">
           {error}
         </span>
       ) : null}

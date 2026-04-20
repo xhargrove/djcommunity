@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { getCurrentUser } from "@/lib/auth/session";
+import { logServerError } from "@/lib/observability/server-log";
+import {
+  USER_ACTION_RATE,
+  userActionRateLimitAllowed,
+} from "@/lib/rate-limit/user-action-rate-limit";
 import { roomMessageBodySchema } from "@/lib/rooms/message-schema";
 import { getMembership, getRoomById } from "@/lib/rooms/queries";
 import { getProfileByUserId } from "@/lib/profile/queries";
@@ -21,6 +26,7 @@ function toView(
     "id" | "room_id" | "sender_profile_id" | "body" | "created_at"
   >,
   profile: Pick<ProfileRow, "id" | "handle" | "display_name" | "avatar_url">,
+  role: "owner" | "admin" | "member" | null,
 ): RoomMessageView {
   return {
     id: row.id,
@@ -32,6 +38,7 @@ function toView(
       handle: profile.handle,
       display_name: profile.display_name,
       avatar_url: profile.avatar_url,
+      role,
     },
   };
 }
@@ -63,6 +70,20 @@ export async function sendRoomMessageAction(
     };
   }
 
+  if (
+    !(await userActionRateLimitAllowed(
+      user.id,
+      `room:message:${roomId}`,
+      USER_ACTION_RATE.roomMessage.max,
+      USER_ACTION_RATE.roomMessage.windowMs,
+    ))
+  ) {
+    return {
+      ok: false,
+      error: "You're sending messages too fast. Slow down a moment.",
+    };
+  }
+
   const room = await getRoomById(roomId);
   if (!room) {
     return { ok: false, error: "Room not found." };
@@ -85,12 +106,19 @@ export async function sendRoomMessageAction(
   > | null;
 
   if (error || !inserted) {
-    console.error("sendRoomMessage", error);
+    logServerError("sendRoomMessage", error, "rooms");
     return { ok: false, error: error?.message ?? "Could not send message." };
   }
 
   revalidatePath(ROUTES.room(room.slug));
-  return { ok: true, message: toView(inserted, profile) };
+  return {
+    ok: true,
+    message: toView(
+      inserted,
+      profile,
+      membership.role as "owner" | "admin" | "member",
+    ),
+  };
 }
 
 export type DeleteRoomMessageResult = { ok: true } | { ok: false; error: string };

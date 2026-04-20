@@ -19,6 +19,20 @@ try {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname),
+  /** Dev / Playwright: allow browser origin when hitting the dev server on 127.0.0.1. */
+  allowedDevOrigins: ["127.0.0.1"],
+  async redirects() {
+    return [
+      { source: "/discover", destination: "/explore", permanent: true },
+      { source: "/discover/:path*", destination: "/explore/:path*", permanent: true },
+    ];
+  },
+  experimental: {
+    serverActions: {
+      // Create post allows video up to 50MB; default Next limit is 1MB.
+      bodySizeLimit: "55mb",
+    },
+  },
   images: {
     remotePatterns: supabaseHost
       ? [

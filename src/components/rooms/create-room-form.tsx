@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import { createRoomAction } from "@/actions/rooms";
@@ -14,6 +15,8 @@ import {
   type RoomVisibility,
 } from "@/lib/rooms/constants";
 import type { CityRow } from "@/types/database";
+import { PRODUCT_EVENTS } from "@/lib/analytics/events";
+import { trackProductEvent } from "@/lib/analytics/track-client";
 import { ROUTES } from "@/lib/routes";
 
 function SubmitButton() {
@@ -22,7 +25,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
+      className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
     >
       {pending ? "Creating…" : "Create room"}
     </button>
@@ -31,10 +34,11 @@ function SubmitButton() {
 
 export function CreateRoomForm({ cities }: { cities: CityRow[] }) {
   const router = useRouter();
-  const [state, formAction] = useFormState(createRoomAction, undefined);
+  const [state, formAction] = useActionState(createRoomAction, undefined);
 
   useEffect(() => {
     if (state?.ok) {
+      trackProductEvent(PRODUCT_EVENTS.ROOM_CREATED, { slug: state.slug });
       router.push(ROUTES.room(state.slug));
     }
   }, [state, router]);
@@ -50,7 +54,7 @@ export function CreateRoomForm({ cities }: { cities: CityRow[] }) {
           name="name"
           required
           maxLength={120}
-          className="w-full rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+          className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-zinc-900"
           placeholder="e.g. Atlanta open-format DJs"
         />
       </div>
@@ -62,7 +66,7 @@ export function CreateRoomForm({ cities }: { cities: CityRow[] }) {
           id="slug"
           name="slug"
           maxLength={64}
-          className="w-full rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+          className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-zinc-900"
           placeholder="Leave blank to derive from name"
         />
         <p className="text-[11px] text-zinc-600">
@@ -78,7 +82,7 @@ export function CreateRoomForm({ cities }: { cities: CityRow[] }) {
           name="description"
           rows={4}
           maxLength={2000}
-          className="w-full rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+          className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-zinc-900"
           placeholder="What is this room for?"
         />
       </div>
@@ -91,7 +95,7 @@ export function CreateRoomForm({ cities }: { cities: CityRow[] }) {
           name="visibility"
           required
           defaultValue="public"
-          className="w-full rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+          className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-zinc-900"
         >
           {ROOM_VISIBILITIES.map((v: RoomVisibility) => (
             <option key={v} value={v}>
@@ -112,7 +116,7 @@ export function CreateRoomForm({ cities }: { cities: CityRow[] }) {
           name="room_type"
           required
           defaultValue="topic"
-          className="w-full rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+          className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-zinc-900"
         >
           {ROOM_TYPES.map((t: RoomType) => (
             <option key={t} value={t}>
@@ -129,7 +133,7 @@ export function CreateRoomForm({ cities }: { cities: CityRow[] }) {
           id="city_id"
           name="city_id"
           defaultValue=""
-          className="w-full rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+          className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-zinc-900"
         >
           <option value="">— None —</option>
           {cities.map((c) => (

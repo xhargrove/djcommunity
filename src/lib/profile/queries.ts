@@ -1,5 +1,6 @@
 import "server-only";
 
+import { logServerError } from "@/lib/observability/server-log";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ProfileRow } from "@/types/database";
@@ -23,7 +24,7 @@ export async function getProfileByUserId(
     .maybeSingle();
 
   if (error) {
-    console.error("getProfileByUserId", error);
+    logServerError("getProfileByUserId", error, "profile");
     return null;
   }
 
@@ -42,7 +43,7 @@ export async function getProfileByHandle(
     .maybeSingle();
 
   if (error) {
-    console.error("getProfileByHandle", error);
+    logServerError("getProfileByHandle", error, "profile");
     return null;
   }
 
@@ -59,7 +60,7 @@ export async function getGenreIdsForProfile(
     .eq("profile_id", profileId);
 
   if (error) {
-    console.error("getGenreIdsForProfile", error);
+    logServerError("getGenreIdsForProfile", error, "profile");
     return [];
   }
 

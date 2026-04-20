@@ -1,39 +1,15 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
+import { isAuthPath, isProtectedPath } from "@/lib/auth/route-guards";
 import { getPublicEnv } from "@/lib/env/public";
 import { ROUTES } from "@/lib/routes";
 import type { Database } from "@/types/database";
 
-const AUTH_PATHS = new Set<string>([ROUTES.login, ROUTES.signUp]);
-
-function isProtectedPath(pathname: string): boolean {
-  if (pathname.startsWith("/u/")) {
-    return false;
-  }
-  if (
-    pathname === ROUTES.onboarding ||
-    pathname.startsWith(`${ROUTES.onboarding}/`)
-  ) {
-    return true;
-  }
-  if (pathname.startsWith("/profile")) {
-    return true;
-  }
-  if (pathname === ROUTES.home || pathname.startsWith(`${ROUTES.home}/`)) {
-    return true;
-  }
-  return false;
-}
-
-function isAuthPath(pathname: string): boolean {
-  return AUTH_PATHS.has(pathname);
-}
-
 /** Preserve session cookies when issuing redirects from middleware. */
 function copyCookies(from: NextResponse, to: NextResponse) {
   from.cookies.getAll().forEach((cookie) => {
-    to.cookies.set(cookie.name, cookie.value);
+    to.cookies.set(cookie);
   });
 }
 

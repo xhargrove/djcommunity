@@ -1,6 +1,8 @@
 import "server-only";
 
+import { logServerError } from "@/lib/observability/server-log";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getBlockedProfileIdsForViewer } from "@/lib/trust/queries";
 import type {
   PostRow,
   PostMediaRow,
@@ -69,6 +71,7 @@ async function hydrateFeedItems(
   supabase: ServerClient,
   postRows: PostRow[],
   viewerProfileId: string | null,
+  blockedForViewer: Set<string>,
 ): Promise<FeedItem[]> {
   if (postRows.length === 0) {
     return [];
@@ -82,7 +85,7 @@ async function hydrateFeedItems(
     .in("id", profileIds);
 
   if (profErr || !profiles) {
-    console.error("hydrateFeedItems profiles", profErr);
+    logServerError("hydrateFeedItems profiles", profErr, "database");
     return [];
   }
 
@@ -115,7 +118,6 @@ async function hydrateFeedItems(
     { data: commentRowsRaw },
     { data: viewerLikeRows },
     { data: viewerSaveRows },
-    { data: commentCountRows },
   ] = await Promise.all([
     supabase.from("post_likes").select("post_id").in("post_id", postIds),
     supabase
@@ -138,15 +140,10 @@ async function hydrateFeedItems(
           .eq("profile_id", viewerProfileId)
           .in("post_id", postIds)
       : Promise.resolve({ data: [] as { post_id: string }[] }),
-    supabase.from("post_comments").select("post_id").in("post_id", postIds),
   ]);
 
   const likeCountMap = countByPostId(
     (likeRows ?? []) as { post_id: string }[],
-  );
-
-  const commentTotals = countByPostId(
-    (commentCountRows ?? []) as { post_id: string }[],
   );
 
   const likedSet = new Set(
@@ -157,8 +154,13 @@ async function hydrateFeedItems(
   );
 
   const commentRows = (commentRowsRaw ?? []) as PostCommentRow[];
+  const visibleComments = commentRows.filter(
+    (c) => !blockedForViewer.has(c.author_profile_id),
+  );
+  const commentTotalsFiltered = countByPostId(visibleComments);
+
   const commentsByPost = new Map<string, PostCommentRow[]>();
-  for (const c of commentRows) {
+  for (const c of visibleComments) {
     const g = commentsByPost.get(c.post_id) ?? [];
     if (g.length >= 35) {
       continue;
@@ -171,7 +173,7 @@ async function hydrateFeedItems(
   }
 
   const commentAuthorIds = [
-    ...new Set(commentRows.map((c) => c.author_profile_id)),
+    ...new Set(visibleComments.map((c) => c.author_profile_id)),
   ];
   let commentAuthorMap = new Map<
     string,
@@ -205,7 +207,7 @@ async function hydrateFeedItems(
 
     const engagement: PostEngagementState = {
       likeCount: likeCountMap.get(post.id) ?? 0,
-      commentCount: commentTotals.get(post.id) ?? 0,
+      commentCount: commentTotalsFiltered.get(post.id) ?? 0,
       likedByViewer: likedSet.has(post.id),
       savedByViewer: savedSet.has(post.id),
     };
@@ -244,13 +246,60 @@ export async function listFeedPosts(
 
   if (postsErr || !posts?.length) {
     if (postsErr) {
-      console.error("listFeedPosts posts", postsErr);
+      logServerError("listFeedPosts posts", postsErr, "database");
     }
     return [];
   }
 
-  const postRows = posts as PostRow[];
-  return hydrateFeedItems(supabase, postRows, viewerProfileId);
+  const blocked =
+    viewerProfileId != null
+      ? await getBlockedProfileIdsForViewer(viewerProfileId)
+      : new Set<string>();
+  const postRows = (posts as PostRow[]).filter((p) => !blocked.has(p.profile_id));
+  return hydrateFeedItems(supabase, postRows, viewerProfileId, blocked);
+}
+
+/** Posts by a single author (e.g. public profile grid / feed section). */
+export async function listFeedPostsForAuthor(
+  authorProfileId: string,
+  limit = 24,
+  viewerProfileId: string | null = null,
+): Promise<FeedItem[]> {
+  if (
+    viewerProfileId != null &&
+    viewerProfileId !== authorProfileId
+  ) {
+    const blocked = await getBlockedProfileIdsForViewer(viewerProfileId);
+    if (blocked.has(authorProfileId)) {
+      return [];
+    }
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { data: posts, error } = await supabase
+    .from("posts")
+    .select("*")
+    .eq("profile_id", authorProfileId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !posts?.length) {
+    if (error) {
+      logServerError("listFeedPostsForAuthor", error, "database");
+    }
+    return [];
+  }
+
+  const blocked =
+    viewerProfileId != null
+      ? await getBlockedProfileIdsForViewer(viewerProfileId)
+      : new Set<string>();
+  return hydrateFeedItems(
+    supabase,
+    posts as PostRow[],
+    viewerProfileId,
+    blocked,
+  );
 }
 
 /**
@@ -271,18 +320,22 @@ export async function listFeedPostsByIds(
 
   if (error || !posts?.length) {
     if (error) {
-      console.error("listFeedPostsByIds", error);
+      logServerError("listFeedPostsByIds", error, "database");
     }
     return [];
   }
 
-  const rows = posts as PostRow[];
+  const blocked =
+    viewerProfileId != null
+      ? await getBlockedProfileIdsForViewer(viewerProfileId)
+      : new Set<string>();
+  const rows = (posts as PostRow[]).filter((p) => !blocked.has(p.profile_id));
   const orderMap = new Map(postIds.map((id, i) => [id, i] as const));
   rows.sort(
     (a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0),
   );
 
-  return hydrateFeedItems(supabase, rows, viewerProfileId);
+  return hydrateFeedItems(supabase, rows, viewerProfileId, blocked);
 }
 
 export async function getPostById(postId: string): Promise<PostRow | null> {
@@ -294,7 +347,7 @@ export async function getPostById(postId: string): Promise<PostRow | null> {
     .maybeSingle();
 
   if (error) {
-    console.error("getPostById", error);
+    logServerError("getPostById", error, "database");
     return null;
   }
   return data as PostRow | null;
@@ -311,7 +364,7 @@ export async function listMediaForPost(
     .order("sort_order", { ascending: true });
 
   if (error) {
-    console.error("listMediaForPost", error);
+    logServerError("listMediaForPost", error, "database");
     return [];
   }
   return (data ?? []) as PostMediaRow[];

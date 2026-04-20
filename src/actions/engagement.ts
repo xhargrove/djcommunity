@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentUser } from "@/lib/auth/session";
 import { commentBodySchema } from "@/lib/engagement/schema";
+import {
+  USER_ACTION_RATE,
+  userActionRateLimitAllowed,
+} from "@/lib/rate-limit/user-action-rate-limit";
 import { getPostById } from "@/lib/posts/queries";
 import { profilePublicPath } from "@/lib/profile/paths";
 import { getProfileByUserId } from "@/lib/profile/queries";
@@ -11,6 +15,22 @@ import { ROUTES } from "@/lib/routes";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
+
+async function engagementRateLimited(
+  userId: string,
+): Promise<ActionResult | null> {
+  if (
+    !(await userActionRateLimitAllowed(
+      userId,
+      "engagement:toggle",
+      USER_ACTION_RATE.engagementToggle.max,
+      USER_ACTION_RATE.engagementToggle.windowMs,
+    ))
+  ) {
+    return { ok: false, error: "Slow down — try again in a moment." };
+  }
+  return null;
+}
 
 async function revalidateProfileById(profileId: string) {
   const supabase = await createServerSupabaseClient();
@@ -34,6 +54,11 @@ export async function toggleLikeAction(postId: string): Promise<ActionResult> {
   const profile = await getProfileByUserId(user.id);
   if (!profile) {
     return { ok: false, error: "Complete your profile first." };
+  }
+
+  const limited = await engagementRateLimited(user.id);
+  if (limited) {
+    return limited;
   }
 
   const post = await getPostById(postId);
@@ -71,6 +96,7 @@ export async function toggleLikeAction(postId: string): Promise<ActionResult> {
     }
   }
 
+  revalidatePath("/", "layout");
   revalidatePath(ROUTES.home);
   return { ok: true };
 }
@@ -84,6 +110,11 @@ export async function toggleSaveAction(postId: string): Promise<ActionResult> {
   const profile = await getProfileByUserId(user.id);
   if (!profile) {
     return { ok: false, error: "Complete your profile first." };
+  }
+
+  const limited = await engagementRateLimited(user.id);
+  if (limited) {
+    return limited;
   }
 
   const post = await getPostById(postId);
@@ -141,6 +172,11 @@ export async function addCommentAction(
     return { ok: false, error: "Complete your profile first." };
   }
 
+  const limited = await engagementRateLimited(user.id);
+  if (limited) {
+    return limited;
+  }
+
   const postId = String(formData.get("post_id") ?? "");
   const bodyParsed = commentBodySchema.safeParse(
     String(formData.get("body") ?? ""),
@@ -169,6 +205,7 @@ export async function addCommentAction(
     return { ok: false, error: error.message };
   }
 
+  revalidatePath("/", "layout");
   revalidatePath(ROUTES.home);
   return { ok: true };
 }
@@ -218,6 +255,11 @@ export async function toggleFollowAction(targetProfileId: string): Promise<Actio
     return { ok: false, error: "Complete your profile first." };
   }
 
+  const limited = await engagementRateLimited(user.id);
+  if (limited) {
+    return limited;
+  }
+
   if (viewer.id === targetProfileId) {
     return { ok: false, error: "You cannot follow yourself." };
   }
@@ -254,5 +296,6 @@ export async function toggleFollowAction(targetProfileId: string): Promise<Actio
 
   await revalidateProfileById(targetProfileId);
   await revalidateProfileById(viewer.id);
+  revalidatePath("/", "layout");
   return { ok: true };
 }

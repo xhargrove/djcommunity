@@ -1,5 +1,6 @@
 import "server-only";
 
+import { logServerError } from "@/lib/observability/server-log";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function getFollowCounts(profileId: string): Promise<{
@@ -38,7 +39,7 @@ export async function isFollowing(
     .maybeSingle();
 
   if (error) {
-    console.error("isFollowing", error);
+    logServerError("isFollowing", error, "engagement");
     return false;
   }
   return data != null;

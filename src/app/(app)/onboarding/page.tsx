@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ProfileForm } from "@/components/profile/profile-form";
+import { AppPageHeader } from "@/components/shell/app-page-header";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getProfileByUserId } from "@/lib/profile/queries";
 import { loadProfileTaxonomy } from "@/lib/taxonomy/queries";
@@ -22,16 +23,12 @@ export default async function OnboardingPage() {
   const taxonomy = await loadProfileTaxonomy();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-          Create your DJ profile
-        </h1>
-        <p className="mt-2 max-w-prose text-sm text-[var(--muted)]">
-          Choose your city, genres, and DJ type from the lists below. You can add
-          photos after saving from Edit profile.
-        </p>
-      </div>
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-8">
+      <AppPageHeader
+        eyebrow="Onboarding"
+        title="Create your DJ profile"
+        subtitle="You’re building your public DJ identity: where you play, what you spin, and how people find you. Avatar and banner come next in Edit profile."
+      />
       <ProfileForm
         mode="create"
         initial={null}
