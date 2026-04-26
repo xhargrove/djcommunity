@@ -31,8 +31,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // Create post allows video up to 50MB; default Next limit is 1MB.
-      bodySizeLimit: "55mb",
+      // Feed composer sends metadata only (media uploads go browser → Supabase Storage).
+      bodySizeLimit: "15mb",
     },
   },
   images: {

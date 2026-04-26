@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   MEDIA_ASPECT_RATIOS,
+  MEDIA_ASPECT_SHORT_LABELS,
   mediaAspectFrameClass,
   type MediaAspectRatio,
 } from "@/lib/posts/media-aspect";
@@ -18,7 +19,7 @@ type MediaItem = {
 type ViewMode = "author" | MediaAspectRatio | "fit";
 
 function normalizeAuthorRatio(raw: string | null | undefined): MediaAspectRatio {
-  if (raw === "1_1" || raw === "9_16" || raw === "4_5") {
+  if (raw === "1_1" || raw === "9_16" || raw === "4_5" || raw === "16_9") {
     return raw;
   }
   return "4_5";
@@ -295,7 +296,7 @@ export function PostCardMedia({
                   : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
               }`}
             >
-              {r === "4_5" ? "4:5" : r === "1_1" ? "1:1" : "9:16"}
+              {MEDIA_ASPECT_SHORT_LABELS[r]}
             </button>
           ))}
           <button

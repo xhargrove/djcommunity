@@ -75,3 +75,13 @@ export function labelForPostType(value: string): string {
 
 /** Instagram-style multi-photo/video per post (composer + server action). */
 export const POST_CAROUSEL_MAX_MEDIA = 10;
+
+/** Per image in a feed post (carousel) — must match `createPostAction` validation. */
+export const MAX_POST_IMAGE_BYTES = 8 * 1024 * 1024;
+
+/**
+ * Per video in a feed post. We cap **file size**, not duration in software—this budget
+ * is sized so typical phone **1080p** clips of **~2–3 minutes** usually fit; very high
+ * bitrates (e.g. 4K) may still need a shorter clip or re-export.
+ */
+export const MAX_POST_VIDEO_BYTES = 350 * 1024 * 1024;

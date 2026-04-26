@@ -1,9 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { getCurrentUser } from "@/lib/auth/session";
 import { POST_CAROUSEL_MAX_MEDIA } from "@/lib/posts/constants";
+import {
+  classifyPostFeedMedia,
+  isClientPostMediaStoragePath,
+  maxBytesForPostFeedKind,
+  postFeedFileTooLargeMessage,
+} from "@/lib/posts/media-upload-rules";
 import {
   createPostSchema,
   updatePostSchema,
@@ -22,40 +29,24 @@ export type PostFormState =
   | { ok: true; postId: string }
   | { ok: false; error: string };
 
-const IMAGE_MIMES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
-const VIDEO_MIMES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+export type AttachPostMediaResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const attachMediaItemSchema = z.object({
+  storagePath: z.string().min(1),
+  kind: z.enum(["image", "video"]),
+  mimeType: z.string().min(1),
+  sortOrder: z.number().int().min(0).max(POST_CAROUSEL_MAX_MEDIA - 1),
+});
 
-const MIME_TO_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/gif": "gif",
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-  "video/quicktime": "mov",
-};
-
-function classifyMedia(mime: string): "image" | "video" | null {
-  if (IMAGE_MIMES.has(mime)) {
-    return "image";
-  }
-  if (VIDEO_MIMES.has(mime)) {
-    return "video";
-  }
-  return null;
-}
-
-function maxBytesForKind(kind: "image" | "video"): number {
-  return kind === "image" ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
-}
+const attachPostMediaInputSchema = z.object({
+  postId: z.string().uuid(),
+  items: z
+    .array(attachMediaItemSchema)
+    .min(1)
+    .max(POST_CAROUSEL_MAX_MEDIA),
+});
 
 async function removeStoragePaths(paths: string[]): Promise<void> {
   if (paths.length === 0) {
@@ -80,6 +71,16 @@ export async function createPostAction(
   const profile = await getProfileByUserId(user.id);
   if (!profile) {
     return { ok: false, error: "Complete your profile before posting." };
+  }
+
+  for (const [, value] of formData.entries()) {
+    if (value instanceof File && value.size > 0) {
+      return {
+        ok: false,
+        error:
+          "Media cannot be sent through this step (host body limit). Pick files again — they should upload from your device directly to storage.",
+      };
+    }
   }
 
   const aspectRaw = String(formData.get("media_aspect_ratio") ?? "").trim();
@@ -135,86 +136,119 @@ export async function createPostAction(
   }
 
   const postId = inserted.id;
-  const rawMedia = formData.getAll("media");
-  const files = rawMedia.filter(
-    (item): item is File => item instanceof File && item.size > 0,
-  );
 
-  if (files.length === 0) {
-    revalidatePath(ROUTES.home);
-    revalidatePath(ROUTES.create);
-    return { ok: true, postId };
-  }
+  revalidatePath(ROUTES.home);
+  revalidatePath(ROUTES.create);
+  return { ok: true, postId };
+}
 
-  if (files.length > POST_CAROUSEL_MAX_MEDIA) {
-    await supabase.from("posts").delete().eq("id", postId);
+/**
+ * After the browser uploads each file directly to Supabase Storage (bypassing Vercel’s
+ * ~4.5MB Server Action body limit), register rows in `post_media` with server-side checks.
+ */
+export async function attachPostMediaAfterClientUploadAction(
+  input: z.infer<typeof attachPostMediaInputSchema>,
+): Promise<AttachPostMediaResult> {
+  const parsed = attachPostMediaInputSchema.safeParse(input);
+  if (!parsed.success) {
     return {
       ok: false,
-      error: `You can attach up to ${POST_CAROUSEL_MAX_MEDIA} photos or videos per post.`,
+      error: parsed.error.issues[0]?.message ?? "Invalid media payload.",
     };
   }
 
-  for (const file of files) {
-    const mime = file.type || "application/octet-stream";
-    const kind = classifyMedia(mime);
-    if (!kind) {
-      await supabase.from("posts").delete().eq("id", postId);
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "You must be signed in to post." };
+  }
+
+  const profile = await getProfileByUserId(user.id);
+  if (!profile) {
+    return { ok: false, error: "Complete your profile before posting." };
+  }
+
+  const post = await getPostById(parsed.data.postId);
+  if (!post || post.profile_id !== profile.id) {
+    return { ok: false, error: "You cannot attach media to this post." };
+  }
+
+  const existing = await listMediaForPost(parsed.data.postId);
+  if (existing.length > 0) {
+    return { ok: false, error: "This post already has media attached." };
+  }
+
+  const items = [...parsed.data.items].sort((a, b) => a.sortOrder - b.sortOrder);
+  const paths = items.map((i) => i.storagePath);
+  if (new Set(paths).size !== paths.length) {
+    return { ok: false, error: "Duplicate media paths are not allowed." };
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const folder = `${user.id}/${parsed.data.postId}`;
+  const { data: listed, error: listErr } = await supabase.storage
+    .from("post_media")
+    .list(folder, { limit: POST_CAROUSEL_MAX_MEDIA + 5 });
+
+  if (listErr) {
+    logServerError("attachPostMedia list", listErr, "storage");
+    return { ok: false, error: listErr.message };
+  }
+
+  const byName = new Map(
+    (listed ?? []).map((o) => [o.name, o] as const),
+  );
+
+  for (const item of items) {
+    if (
+      !isClientPostMediaStoragePath({
+        userId: user.id,
+        postId: parsed.data.postId,
+        storagePath: item.storagePath,
+      })
+    ) {
+      return { ok: false, error: "Invalid media path." };
+    }
+
+    const classified = classifyPostFeedMedia(item.mimeType);
+    if (!classified || classified !== item.kind) {
+      return { ok: false, error: "MIME type does not match media kind." };
+    }
+
+    const baseName = item.storagePath.split("/").pop()!;
+    const entry = byName.get(baseName);
+    if (!entry) {
       return {
         ok: false,
         error:
-          "Unsupported file type. Use JPG, PNG, WebP, GIF, MP4, WebM, or MOV.",
+          "Upload was not found in storage. Try posting again — large files upload from your device straight to storage.",
       };
     }
-    if (file.size > maxBytesForKind(kind)) {
-      await supabase.from("posts").delete().eq("id", postId);
-      return {
-        ok: false,
-        error:
-          kind === "image"
-            ? "Each image must be 8MB or smaller."
-            : "Each video must be 50MB or smaller.",
-      };
+
+    const sizeRaw = entry.metadata?.size;
+    const size =
+      typeof sizeRaw === "number"
+        ? sizeRaw
+        : typeof sizeRaw === "string"
+          ? Number.parseInt(sizeRaw, 10)
+          : NaN;
+    if (Number.isFinite(size) && size > maxBytesForPostFeedKind(item.kind)) {
+      return { ok: false, error: postFeedFileTooLargeMessage(item.kind) };
     }
   }
 
-  const uploadedPaths: string[] = [];
-
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const mime = file.type || "application/octet-stream";
-    const kind = classifyMedia(mime)!;
-    const ext = MIME_TO_EXT[mime] ?? (kind === "image" ? "jpg" : "mp4");
-    const mediaId = crypto.randomUUID();
-    const storagePath = `${user.id}/${postId}/${mediaId}.${ext}`;
-
-    const { error: upErr } = await supabase.storage
-      .from("post_media")
-      .upload(storagePath, file, {
-        upsert: false,
-        contentType: mime,
-      });
-
-    if (upErr) {
-      logServerError("createPost upload", upErr, "storage");
-      await removeStoragePaths(uploadedPaths);
-      await supabase.from("posts").delete().eq("id", postId);
-      return { ok: false, error: upErr.message };
-    }
-
-    uploadedPaths.push(storagePath);
-
+  for (const item of items) {
     const { error: mediaErr } = await supabase.from("post_media").insert({
-      post_id: postId,
-      storage_path: storagePath,
-      kind,
-      mime_type: mime,
-      sort_order: i,
+      post_id: parsed.data.postId,
+      storage_path: item.storagePath,
+      kind: item.kind,
+      mime_type: item.mimeType,
+      sort_order: item.sortOrder,
     } as never);
 
     if (mediaErr) {
-      logServerError("createPost post_media", mediaErr, "database");
-      await removeStoragePaths(uploadedPaths);
-      await supabase.from("posts").delete().eq("id", postId);
+      logServerError("attachPostMedia insert", mediaErr, "database");
+      await removeStoragePaths(paths);
+      await supabase.from("posts").delete().eq("id", parsed.data.postId);
       return {
         ok: false,
         error: "Post was not saved. Try again.",
@@ -224,7 +258,7 @@ export async function createPostAction(
 
   revalidatePath(ROUTES.home);
   revalidatePath(ROUTES.create);
-  return { ok: true, postId };
+  return { ok: true };
 }
 
 export type PostUpdateResult = { ok: true } | { ok: false; error: string };
