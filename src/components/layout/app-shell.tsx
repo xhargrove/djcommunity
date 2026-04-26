@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SiteLogo } from "@/components/brand/site-logo";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { MobileTabNav } from "@/components/layout/mobile-tab-nav";
 import { profilePublicPath } from "@/lib/profile/paths";
@@ -40,12 +41,7 @@ export function AppShell({
       <header className="sticky top-0 z-40 border-b border-zinc-200/90 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-            <Link
-              href={ROUTES.home}
-              className="shrink-0 bg-gradient-to-r from-amber-600 to-amber-800 bg-clip-text text-sm font-bold tracking-tight text-transparent hover:from-amber-500 hover:to-amber-700"
-            >
-              MixerHQ
-            </Link>
+            <SiteLogo />
             <nav className="flex min-w-0 items-center gap-2 overflow-x-auto text-[11px] font-medium text-zinc-600 sm:gap-3 sm:text-xs">
               <Link href={ROUTES.home} className="shrink-0 hover:text-zinc-900">
                 Home
