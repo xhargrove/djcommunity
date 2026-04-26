@@ -1,31 +1,31 @@
 import "server-only";
 
 import type { Database } from "@/types/database";
+import type { ServerSupabaseClient } from "@/lib/supabase/server";
+
+/** Alias for the cookie-bound SSR client used by account deletion flows. */
+export type AccountDeletionSupabase = ServerSupabaseClient;
 
 type Insert = Database["public"]["Tables"]["account_deletion_requests"]["Insert"];
 type Update = Database["public"]["Tables"]["account_deletion_requests"]["Update"];
 
-/**
- * Hand-maintained table types + PostgREST v12 client inference can disagree until
- * `supabase gen types` is run after migrations. Payloads stay strict; the client is
- * intentionally untyped (`unknown`) because SSR `createServerClient` generics differ
- * slightly from `createClient<Database>`.
- */
 export async function insertAccountDeletionRequest(
-  client: unknown,
+  client: AccountDeletionSupabase,
   row: Insert,
 ) {
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  return await (client as any).from("account_deletion_requests").insert(row);
+  return client
+    .from("account_deletion_requests")
+    .insert(row)
+    .select("id")
+    .single();
 }
 
 export async function cancelAccountDeletionRequestByUser(
-  client: unknown,
+  client: AccountDeletionSupabase,
   requestId: string,
   userId: string,
 ) {
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  return await (client as any)
+  return client
     .from("account_deletion_requests")
     .update({ status: "cancelled" } satisfies Update)
     .eq("id", requestId)
@@ -35,13 +35,12 @@ export async function cancelAccountDeletionRequestByUser(
 }
 
 export async function updateAccountDeletionRequestStaff(
-  client: unknown,
+  client: AccountDeletionSupabase,
   requestId: string,
   row: Update,
   allowedStatuses: string[],
 ) {
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  return await (client as any)
+  return client
     .from("account_deletion_requests")
     .update(row)
     .eq("id", requestId)
@@ -50,7 +49,7 @@ export async function updateAccountDeletionRequestStaff(
 }
 
 export async function selectAccountDeletionRequests(
-  client: unknown,
+  client: AccountDeletionSupabase,
   options: {
     profileId?: string;
     status?: string;
@@ -60,8 +59,7 @@ export async function selectAccountDeletionRequests(
     orderBy?: { column: string; ascending: boolean };
   },
 ) {
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  let q = (client as any).from("account_deletion_requests").select("*");
+  let q = client.from("account_deletion_requests").select("*");
   if (options.profileId) {
     q = q.eq("profile_id", options.profileId);
   }

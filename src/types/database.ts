@@ -391,6 +391,47 @@ export type Database = {
         };
         Relationships: [];
       };
+      mashup_mixtape_posts: {
+        Row: {
+          id: string;
+          profile_id: string;
+          title: string;
+          description: string | null;
+          download_url: string;
+          kind: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          title: string;
+          description?: string | null;
+          download_url: string;
+          kind?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          title?: string;
+          description?: string | null;
+          download_url?: string;
+          kind?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mashup_mixtape_posts_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       notifications: {
         Row: {
           id: string;
@@ -502,8 +543,9 @@ export type Database = {
       account_deletion_requests: {
         Row: {
           id: string;
-          user_id: string;
-          profile_id: string;
+          user_id: string | null;
+          profile_id: string | null;
+          profile_handle_snapshot: string;
           status: string;
           message: string | null;
           created_at: string;
@@ -511,11 +553,18 @@ export type Database = {
           staff_note: string | null;
           reviewed_at: string | null;
           reviewed_by_profile_id: string | null;
+          execution_status: string;
+          last_error_code: string | null;
+          last_error_at: string | null;
+          execution_attempts: number;
+          executed_at: string | null;
+          last_execution_stage: string | null;
         };
         Insert: {
           id?: string;
-          user_id: string;
-          profile_id: string;
+          user_id?: string | null;
+          profile_id?: string | null;
+          profile_handle_snapshot: string;
           status?: string;
           message?: string | null;
           created_at?: string;
@@ -523,11 +572,18 @@ export type Database = {
           staff_note?: string | null;
           reviewed_at?: string | null;
           reviewed_by_profile_id?: string | null;
+          execution_status?: string;
+          last_error_code?: string | null;
+          last_error_at?: string | null;
+          execution_attempts?: number;
+          executed_at?: string | null;
+          last_execution_stage?: string | null;
         };
         Update: {
           id?: string;
-          user_id?: string;
-          profile_id?: string;
+          user_id?: string | null;
+          profile_id?: string | null;
+          profile_handle_snapshot?: string;
           status?: string;
           message?: string | null;
           created_at?: string;
@@ -535,6 +591,12 @@ export type Database = {
           staff_note?: string | null;
           reviewed_at?: string | null;
           reviewed_by_profile_id?: string | null;
+          execution_status?: string;
+          last_error_code?: string | null;
+          last_error_at?: string | null;
+          execution_attempts?: number;
+          executed_at?: string | null;
+          last_execution_stage?: string | null;
         };
         Relationships: [
           {
@@ -555,9 +617,36 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      v_account_deletion_open_ops: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          profile_id: string | null;
+          profile_handle_snapshot: string;
+          status: string;
+          message: string | null;
+          created_at: string;
+          updated_at: string;
+          staff_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by_profile_id: string | null;
+          execution_status: string;
+          last_error_code: string | null;
+          last_error_at: string | null;
+          execution_attempts: number;
+          executed_at: string | null;
+          last_execution_stage: string | null;
+          ops_category: string;
+          ops_severity: string;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
+      claim_account_deletion_execution: {
+        Args: { p_request_id: string };
+        Returns: Json;
+      };
       discovery_trending_post_ids: {
         Args: { p_days: number; p_limit: number };
         Returns: string[];
@@ -603,3 +692,7 @@ export type ContentReportTriageRow =
   Database["public"]["Tables"]["content_report_triage"]["Row"];
 export type AccountDeletionRequestRow =
   Database["public"]["Tables"]["account_deletion_requests"]["Row"];
+export type AccountDeletionOpenOpsRow =
+  Database["public"]["Views"]["v_account_deletion_open_ops"]["Row"];
+export type MashupMixtapePostRow =
+  Database["public"]["Tables"]["mashup_mixtape_posts"]["Row"];

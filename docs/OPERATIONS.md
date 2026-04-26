@@ -21,7 +21,7 @@ Concise runbook for running the app, CI, moderation, and staging checks.
 
 - **Moderation queue:** `/admin/moderation` — guarded by `requireCanModeratePage` (moderator / admin / owner) plus RLS on `content_reports` and related tables.
 - **Admin home:** `/admin` — `requireSiteStaffPage`.
-- **Account deletion queue:** `/admin/account-deletion` — `requireSiteStaffPage` (admin / owner only). Lists `pending` / `processing` rows from `account_deletion_requests`; fulfillment is manual per `docs/ACCOUNT_DATA_CONTROLS.md`.
+- **Account deletion queue:** `/admin/account-deletion` — `requireSiteStaffPage` (admin / owner only). Lists `pending` / `processing` rows; shows workflow + machine state and compact recovery hints. Ops view `v_account_deletion_open_ops`, weekly checklist **`docs/ACCOUNT_DELETION_ROUTINE_REVIEW.md`**, read-only **`npm run ops:account-deletion`**, optional digest **`npm run digest:account-deletion`** (**`docs/ACCOUNT_DELETION_OPS_DIGEST.md`** — webhook only when `ACCOUNT_DELETION_OPS_WEBHOOK_URL` is set). **Optional** recurring digest: GitHub Actions workflow **`account-deletion-digest.yml`** (manual `workflow_dispatch` + weekly schedule; disable by removing the `schedule` block). Scripts + signals: `docs/ACCOUNT_DATA_CONTROLS.md`, `docs/ACCOUNT_DELETION_ALERTING.md`, `docs/INCIDENTS.md` (deletion section).
 - **Team roles:** `/admin/team` — `requireSiteOwnerPage` and `SUPABASE_SERVICE_ROLE_KEY` on the server for role mutations.
 - Staff links in the shell are hidden from normal users; **authority is enforced on the server**, not by hiding UI alone.
 
@@ -61,7 +61,7 @@ If secrets are unset, **both** signed-in Playwright tests are skipped; public + 
 ## Analytics vs monitoring
 
 - **Product analytics:** `trackProductEvent` / optional GA4 — not error monitoring.
-- **Server logs:** `logServerError` / `logServerWarning` in `src/lib/observability/server-log.ts` — JSON in production with **`category`** (`database`, `storage`, `moderation`, `rooms`, `profile`, `notifications`, `engagement`, `discovery`, `site`, etc.) plus `context`, `name`, `message`. No user-generated content or PII.
+- **Server logs:** `logServerError` / `logServerWarning` in `src/lib/observability/server-log.ts` — JSON in production with **`category`** (`database`, `storage`, `moderation`, `rooms`, `profile`, `notifications`, `engagement`, `discovery`, `site`, `account_deletion`, etc.) plus `context`, `name`, `message`. No user-generated content or PII. Lifecycle info uses `logServerInfo` (same shape, `level: info`). Operator deletion script logs JSON to stdout with `category: account_deletion` (run outside the Next.js server).
 - **Optional action timing:** `reportServerActionDuration` in `src/lib/observability/instrumentation.ts` — see **`docs/OBSERVABILITY.md`**.
 - **Aggregation:** Point your host’s log drain (e.g. Vercel → Datadog / Axiom / CloudWatch) at stdout; filter on `source:"djcn"` and `category`. This is not a substitute for APM — add tracing if you need request-level drill-down.
 

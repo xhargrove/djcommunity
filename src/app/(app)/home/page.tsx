@@ -27,7 +27,7 @@ export default async function HomePage() {
       <AppPageHeader
         eyebrow="Feed"
         title="Home"
-        subtitle="Scene-first feed from people you follow and the network—newest up top. Post to Home, drop into Rooms for real-time chat, Explore to discover."
+        subtitle="Scene-first feed from people you follow and the network—newest up top. Post to Home, drop into Rooms for real-time chat, Explore to discover, Mashups & Mixtapes for download links."
         action={
           <Link
             href={ROUTES.create}
@@ -39,16 +39,24 @@ export default async function HomePage() {
       />
 
       <section className="space-y-5">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
             For you · @{profile.handle}
           </p>
-          <Link
-            href={profilePublicPath(profile.handle)}
-            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-800"
-          >
-            Profile
-          </Link>
+          <div className="flex items-center gap-3 text-[11px] font-medium">
+            <Link
+              href={ROUTES.mashupsMixtapes}
+              className="text-amber-800 hover:text-amber-950"
+            >
+              Mashups & Mixtapes
+            </Link>
+            <Link
+              href={profilePublicPath(profile.handle)}
+              className="text-zinc-500 hover:text-zinc-800"
+            >
+              Profile
+            </Link>
+          </div>
         </div>
         <FeedList items={feedItems} currentProfileId={profile.id} />
       </section>

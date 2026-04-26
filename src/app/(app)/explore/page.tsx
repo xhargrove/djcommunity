@@ -125,6 +125,14 @@ export default async function ExplorePage({ searchParams }: PageProps) {
         eyebrow="Discover"
         title="Explore"
         subtitle="Hunt DJs, rooms, cities, and genres—then dive into what’s moving this week."
+        action={
+          <Link
+            href={ROUTES.mashupsMixtapes}
+            className="text-xs font-medium text-amber-800 underline-offset-2 hover:underline"
+          >
+            Mashups & Mixtapes
+          </Link>
+        }
       />
 
       <DiscoverSearchForm

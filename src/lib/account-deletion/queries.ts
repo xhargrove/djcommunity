@@ -44,30 +44,40 @@ export async function listAccountDeletionQueue(): Promise<
     return [];
   }
 
-  const profileIds = [...new Set(list.map((r) => r.profile_id))];
-  const { data: profiles, error: pErr } = await supabase
-    .from("profiles")
-    .select("id, handle, display_name")
-    .in("id", profileIds);
+  const profileIds = [
+    ...new Set(
+      list
+        .map((r) => r.profile_id)
+        .filter((id): id is string => id != null),
+    ),
+  ];
 
-  if (pErr) {
-    throw pErr;
+  let profileRows: { id: string; handle: string; display_name: string }[] = [];
+  if (profileIds.length > 0) {
+    const { data: profiles, error: pErr } = await supabase
+      .from("profiles")
+      .select("id, handle, display_name")
+      .in("id", profileIds);
+
+    if (pErr) {
+      throw pErr;
+    }
+
+    profileRows = (profiles ?? []) as {
+      id: string;
+      handle: string;
+      display_name: string;
+    }[];
   }
-
-  const profileRows = (profiles ?? []) as {
-    id: string;
-    handle: string;
-    display_name: string;
-  }[];
 
   const byId = new Map(profileRows.map((p) => [p.id, p] as const));
 
   return list.map((r) => {
-    const p = byId.get(r.profile_id);
+    const p = r.profile_id ? byId.get(r.profile_id) : undefined;
     return {
       ...r,
-      handle: p?.handle ?? "unknown",
-      display_name: p?.display_name ?? "Unknown",
+      handle: p?.handle ?? r.profile_handle_snapshot ?? "unknown",
+      display_name: p?.display_name ?? r.profile_handle_snapshot ?? "Unknown",
     };
   });
 }

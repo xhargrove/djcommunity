@@ -113,7 +113,7 @@ export function MobileTabNav({
       href: ROUTES.home,
       label: "Home",
       icon: "home",
-      match: (p) => p === ROUTES.home,
+      match: (p) => p === ROUTES.home || p === ROUTES.mashupsMixtapes,
     },
     {
       href: ROUTES.explore,

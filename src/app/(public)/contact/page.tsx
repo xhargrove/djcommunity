@@ -12,17 +12,17 @@ export async function generateMetadata(): Promise<Metadata> {
   const site = getSiteOrigin();
   const canonical = site ? `${site}${ROUTES.contact}` : undefined;
   return {
-    title: "Contact & safety · DJ Community Network",
+    title: "Contact & safety · MixerHQ",
     description,
     alternates: canonical ? { canonical } : undefined,
     openGraph: {
-      title: "Contact & safety · DJ Community Network",
+      title: "Contact & safety · MixerHQ",
       description,
       url: canonical,
     },
     twitter: {
       card: "summary",
-      title: "Contact & safety · DJ Community Network",
+      title: "Contact & safety · MixerHQ",
       description,
     },
   };
@@ -56,7 +56,7 @@ export default function ContactPage() {
         {support ? (
           <p className="mt-2">
             <a
-              href={contactMailto(support, "DJ Community Network — support")}
+              href={contactMailto(support, "MixerHQ — support")}
               className="font-medium text-amber-800 underline-offset-2 hover:underline"
             >
               {support}
@@ -75,7 +75,7 @@ export default function ContactPage() {
             <p className="mt-2">
               For harassment, spam, illegal content, or other safety concerns (including appeals):{" "}
               <a
-                href={contactMailto(abuse, "DJ Community Network — safety / abuse")}
+                href={contactMailto(abuse, "MixerHQ — safety / abuse")}
                 className="font-medium text-amber-800 underline-offset-2 hover:underline"
               >
                 {abuse}

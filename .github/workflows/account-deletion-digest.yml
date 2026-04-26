@@ -1,0 +1,48 @@
+# Optional scheduled / manual account deletion ops digest.
+# Calls `npm run digest:account-deletion:ci` only — same script as local digest, no duplicate logic.
+# No writes to product data. Webhook delivery follows ACCOUNT_DELETION_OPS_DIGEST_NOTIFY (see docs).
+#
+# Disable automatic runs: delete the `schedule:` block below, or disable this workflow in GitHub → Actions.
+# Forks / missing secrets: job exits 0 with a notice (does not fail the repo).
+
+name: Account deletion ops digest
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly Mondays 14:00 UTC — remove this `schedule:` block to turn off cron entirely.
+    - cron: "0 14 * * 1"
+
+concurrency:
+  group: account-deletion-digest-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Ops digest (read-only)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ACCOUNT_DELETION_OPS_WEBHOOK_URL: ${{ secrets.ACCOUNT_DELETION_OPS_WEBHOOK_URL }}
+          ACCOUNT_DELETION_OPS_WEBHOOK_BEARER: ${{ secrets.ACCOUNT_DELETION_OPS_WEBHOOK_BEARER }}
+          ACCOUNT_DELETION_OPS_WEBHOOK_FORMAT: ${{ vars.ACCOUNT_DELETION_OPS_WEBHOOK_FORMAT }}
+          ACCOUNT_DELETION_OPS_DIGEST_NOTIFY: ${{ vars.ACCOUNT_DELETION_OPS_DIGEST_NOTIFY }}
+        run: |
+          if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "::notice title=Account deletion digest skipped::Set repository secrets NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to enable. See docs/ACCOUNT_DELETION_OPS_DIGEST.md"
+            exit 0
+          fi
+          npm run digest:account-deletion:ci

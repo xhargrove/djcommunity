@@ -16,11 +16,18 @@ const loginSchema = z.object({
 
 function mapAuthError(message: string): string {
   const lower = message.toLowerCase();
-  if (lower.includes("invalid login credentials")) {
+  if (
+    lower.includes("invalid login credentials") ||
+    lower.includes("invalid grant") ||
+    lower.includes("invalid email or password")
+  ) {
     return "Invalid email or password.";
   }
   if (lower.includes("email not confirmed")) {
     return "Confirm your email before signing in.";
+  }
+  if (lower.includes("email signups are disabled")) {
+    return "Sign-in with email is disabled for this project. Check Supabase Auth settings.";
   }
   return message;
 }

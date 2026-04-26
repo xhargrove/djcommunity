@@ -7,7 +7,7 @@ export default function CreatorRoadmapPage() {
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-10 pb-8">
       <AppPageHeader
-        eyebrow="DJ Community Network"
+        eyebrow="MixerHQ"
         title="Creator roadmap"
         subtitle="Nothing here is for sale yet. These are the directions we’re building toward—aligned with real DJ culture, not generic creator tools."
       />
@@ -21,7 +21,7 @@ export default function CreatorRoadmapPage() {
 
       <ul className="space-y-4 text-sm text-zinc-700">
         <li className="rounded-2xl border border-zinc-200 bg-white p-4 ring-1 ring-zinc-100">
-          <h2 className="font-semibold text-zinc-900">DJCN Pro / Studio</h2>
+          <h2 className="font-semibold text-zinc-900">MixerHQ Pro / Studio</h2>
           <p className="mt-2 leading-relaxed text-zinc-600">
             Deeper profile tools, mix showcases, and booking-forward layouts for working DJs.
           </p>

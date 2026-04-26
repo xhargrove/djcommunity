@@ -1,4 +1,4 @@
-# DJ Community Network
+# MixerHQ
 
 ## Requirements
 

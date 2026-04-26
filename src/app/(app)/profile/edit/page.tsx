@@ -47,7 +47,7 @@ export default async function EditProfilePage() {
           View product roadmap
         </Link>
         <span className="mt-1 block text-xs text-zinc-500">
-          No paid features yet—just where DJCN is headed for DJs and crews.
+          No paid features yet—just where MixerHQ is headed for DJs and crews.
         </span>
         <span className="mt-3 block border-t border-zinc-200 pt-3 text-xs text-zinc-600">
           <Link

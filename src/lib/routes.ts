@@ -10,6 +10,8 @@ export const ROUTES = {
   /** Account data / deletion requests — honest operator workflow, not automated erasure. */
   settingsData: "/settings/data",
   postEdit: (id: string) => `/posts/${id}/edit`,
+  /** Mashups & mixtapes — external download/stream links from DJs. */
+  mashupsMixtapes: "/mashups-mixtapes",
   /** Primary discovery surface (Instagram “Explore” energy). */
   explore: "/explore",
   exploreCity: (slug: string) => `/explore/${encodeURIComponent(slug)}`,

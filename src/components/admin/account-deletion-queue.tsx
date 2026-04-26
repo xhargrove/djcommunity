@@ -1,6 +1,10 @@
 import Link from "next/link";
 
 import { updateAccountDeletionStaffFormAction } from "@/actions/account-deletion";
+import {
+  executionMayBeStuck,
+  finalizeFailureNeedsReconcileHint,
+} from "@/lib/account-deletion/reconciliation-flags";
 import { profilePublicPath } from "@/lib/profile/paths";
 import type { AccountDeletionQueueRow } from "@/lib/account-deletion/queries";
 
@@ -25,8 +29,53 @@ export function AccountDeletionQueue({ rows }: { rows: AccountDeletionQueueRow[]
                 @{row.handle} · requested {new Date(row.created_at).toLocaleString()}
               </p>
               <p className="mt-1 text-xs text-zinc-500">
-                Status: <span className="font-medium text-zinc-700">{row.status}</span>
+                Workflow:{" "}
+                <span className="font-medium text-zinc-700">{row.status}</span>
+                {" · "}
+                Execution:{" "}
+                <span
+                  className={`font-medium ${
+                    row.execution_status === "failed"
+                      ? "text-red-700"
+                      : row.execution_status === "running"
+                        ? "text-amber-700"
+                        : row.execution_status === "succeeded"
+                          ? "text-emerald-800"
+                          : "text-zinc-700"
+                  }`}
+                >
+                  {row.execution_status}
+                </span>
+                {row.execution_status === "failed" && row.last_error_code ? (
+                  <span className="ml-1 text-red-600" title="Machine error code from last script run">
+                    ({row.last_error_code}
+                    {row.last_execution_stage ? ` · ${row.last_execution_stage}` : ""})
+                  </span>
+                ) : null}
               </p>
+              {finalizeFailureNeedsReconcileHint(row) ? (
+                <p
+                  className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-950"
+                  role="status"
+                >
+                  <span className="font-medium">Likely partial deletion — reconcile.</span> Auth/profile
+                  may already be gone while the ticket did not finalize. Operator: dry-run then{" "}
+                  <code className="rounded bg-amber-100/80 px-1">npm run reconcile:account-deletion</code>{" "}
+                  (see <span className="font-medium">ACCOUNT_DATA_CONTROLS.md</span>).
+                </p>
+              ) : null}
+              {row.execution_status === "running" && executionMayBeStuck(row) ? (
+                <p
+                  className="mt-2 rounded-lg border border-zinc-300 bg-zinc-50 px-2 py-1.5 text-xs text-zinc-800"
+                  role="status"
+                >
+                  <span className="font-medium">Long-running execution.</span> If no script is active, run{" "}
+                  <code className="rounded bg-zinc-100 px-1">
+                    npm run execute:account-deletion -- --request-id=… --ack-stale-run
+                  </code>
+                  , then retry execute or reconcile per ACCOUNT_DATA_CONTROLS.md.
+                </p>
+              ) : null}
             </div>
             <Link
               href={profilePublicPath(row.handle)}

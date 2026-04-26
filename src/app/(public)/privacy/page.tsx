@@ -12,17 +12,17 @@ export async function generateMetadata(): Promise<Metadata> {
   const site = getSiteOrigin();
   const canonical = site ? `${site}${ROUTES.privacy}` : undefined;
   return {
-    title: "Privacy Policy · DJ Community Network",
+    title: "Privacy Policy · MixerHQ",
     description,
     alternates: canonical ? { canonical } : undefined,
     openGraph: {
-      title: "Privacy Policy · DJ Community Network",
+      title: "Privacy Policy · MixerHQ",
       description,
       url: canonical,
     },
     twitter: {
       card: "summary",
-      title: "Privacy Policy · DJ Community Network",
+      title: "Privacy Policy · MixerHQ",
       description,
     },
   };

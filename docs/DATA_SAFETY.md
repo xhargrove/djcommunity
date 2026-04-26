@@ -16,7 +16,7 @@ Honest operational expectations — not legal or compliance certification.
 | **Room messages** | Persist for chat history unless you add retention jobs or user delete rules later. |
 | **Content reports** | Rows in `content_reports` / triage are operational records for moderation; define internally how long to keep closed reports and whether to anonymize. |
 | **Notifications** | Typically short-lived UX state; confirm whether you prune read rows on a schedule. |
-| **Profiles** | Tied to auth users; deletion/account closure story should be defined before public launch (export, delete cascade, residual references). |
+| **Profiles** | Tied to auth users; deletion/account closure is documented in **`docs/ACCOUNT_DATA_CONTROLS.md`** with operator scripts, reconciliation, and **`docs/ACCOUNT_DELETION_ROUTINE_REVIEW.md`** for routine review. |
 
 ## RLS & audits
 

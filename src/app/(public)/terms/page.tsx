@@ -12,17 +12,17 @@ export async function generateMetadata(): Promise<Metadata> {
   const site = getSiteOrigin();
   const canonical = site ? `${site}${ROUTES.terms}` : undefined;
   return {
-    title: "Terms of Service · DJ Community Network",
+    title: "Terms of Service · MixerHQ",
     description,
     alternates: canonical ? { canonical } : undefined,
     openGraph: {
-      title: "Terms of Service · DJ Community Network",
+      title: "Terms of Service · MixerHQ",
       description,
       url: canonical,
     },
     twitter: {
       card: "summary",
-      title: "Terms of Service · DJ Community Network",
+      title: "Terms of Service · MixerHQ",
       description,
     },
   };
@@ -43,7 +43,7 @@ export default function TermsPage() {
       </p>
       <ul className="list-inside list-disc space-y-2 text-sm text-zinc-600">
         <li>Expected topics: acceptable use, account termination, content license grants, limitation of liability, governing law.</li>
-        <li>DJ Community Network may update terms with notice as described in the final document.</li>
+        <li>MixerHQ may update terms with notice as described in the final document.</li>
       </ul>
       <p className="text-center text-xs text-zinc-500">
         <Link href={ROUTES.root} className="font-medium text-amber-800 hover:underline">

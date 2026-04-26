@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { getCurrentUser } from "@/lib/auth/session";
 import { isSiteStaff, siteRoleFromProfile } from "@/lib/auth/site-role";
-import { logServerError } from "@/lib/observability/server-log";
+import { logServerError, logServerInfo } from "@/lib/observability/server-log";
 import { getProfileByUserId } from "@/lib/profile/queries";
 import {
   USER_ACTION_RATE,
@@ -88,26 +88,37 @@ export async function submitAccountDeletionRequestAction(
   }
 
   const supabase = await createServerSupabaseClient();
-  const { error } = await insertAccountDeletionRequest(supabase, {
+  const { data: inserted, error } = await insertAccountDeletionRequest(supabase, {
     user_id: user.id,
     profile_id: profile.id,
+    profile_handle_snapshot: profile.handle,
     status: "pending",
     message: parsed.data.message,
   });
 
   if (error) {
     if ((error as { code?: string }).code === "23505") {
+      logServerInfo(
+        "submitAccountDeletionRequestAction",
+        "outcome=duplicate_pending",
+        "account_deletion",
+      );
       return {
         ok: false,
         error: "You already have a pending deletion request.",
       };
     }
-    logServerError("submitAccountDeletionRequestAction", error, "site");
+    logServerError("submitAccountDeletionRequestAction", error, "account_deletion");
     return { ok: false, error: error.message };
   }
 
   revalidatePath(ROUTES.settingsData);
   revalidatePath(ROUTES.adminAccountDeletion);
+  logServerInfo(
+    "submitAccountDeletionRequestAction",
+    `status=ok request_id=${inserted?.id ?? "unknown"}`,
+    "account_deletion",
+  );
   return { ok: true };
 }
 
@@ -127,10 +138,15 @@ export async function cancelAccountDeletionRequestAction(
   );
 
   if (error) {
-    logServerError("cancelAccountDeletionRequestAction", error, "site");
+    logServerError("cancelAccountDeletionRequestAction", error, "account_deletion");
     return { ok: false, error: (error as Error).message };
   }
   if (!data?.length) {
+    logServerInfo(
+      "cancelAccountDeletionRequestAction",
+      `outcome=no_pending_match request_id=${requestId}`,
+      "account_deletion",
+    );
     return {
       ok: false,
       error: "Request not found or already processed.",
@@ -139,6 +155,11 @@ export async function cancelAccountDeletionRequestAction(
 
   revalidatePath(ROUTES.settingsData);
   revalidatePath(ROUTES.adminAccountDeletion);
+  logServerInfo(
+    "cancelAccountDeletionRequestAction",
+    `status=ok request_id=${requestId}`,
+    "account_deletion",
+  );
   return { ok: true };
 }
 
@@ -194,10 +215,15 @@ export async function updateAccountDeletionRequestStaffAction(
   );
 
   if (error) {
-    logServerError("updateAccountDeletionRequestStaffAction", error, "site");
+    logServerError("updateAccountDeletionRequestStaffAction", error, "account_deletion");
     return { ok: false, error: (error as Error).message };
   }
   if (!data?.length) {
+    logServerInfo(
+      "updateAccountDeletionRequestStaffAction",
+      `outcome=no_updatable_row request_id=${parsed.data.requestId}`,
+      "account_deletion",
+    );
     return {
       ok: false,
       error: "Request not found or not in an updatable state.",
@@ -205,6 +231,11 @@ export async function updateAccountDeletionRequestStaffAction(
   }
 
   revalidatePath(ROUTES.adminAccountDeletion);
+  logServerInfo(
+    "updateAccountDeletionRequestStaffAction",
+    `status=ok request_id=${parsed.data.requestId} next_status=${parsed.data.status}`,
+    "account_deletion",
+  );
   return { ok: true };
 }
 

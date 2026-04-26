@@ -19,6 +19,7 @@ export type LogErrorCategory =
   | "notifications"
   | "discovery"
   | "site"
+  | "account_deletion"
   | "unknown";
 
 function serializeError(err: unknown): { name: string; message: string } {
@@ -54,6 +55,23 @@ export function logServerWarning(context: string, detail: string): void {
     JSON.stringify({
       level: "warn",
       source: "djcn",
+      context,
+      detail,
+    }),
+  );
+}
+
+/** Structured info for lifecycle / operator flows — no user-generated content or PII. */
+export function logServerInfo(
+  context: string,
+  detail: string,
+  category: LogErrorCategory = "site",
+): void {
+  console.info(
+    JSON.stringify({
+      level: "info",
+      source: "djcn",
+      category,
       context,
       detail,
     }),

@@ -15,7 +15,7 @@ export default async function AdminAccountDeletionPage() {
       <AppPageHeader
         eyebrow="Platform"
         title="Account deletion queue"
-        subtitle="Manual fulfillment — update status after you complete Auth, database, and storage steps documented in ACCOUNT_DATA_CONTROLS.md."
+        subtitle="Manual fulfillment or operator script — workflow status vs execution state (idle / running / failed / succeeded) is documented in ACCOUNT_DATA_CONTROLS.md."
       />
 
       <div

@@ -35,7 +35,7 @@ export function ProfileTrustSection({
         Safety
       </h2>
       <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
-        Community standards apply across DJCN. You can block accounts or report profiles that
+        Community standards apply across MixerHQ. You can block accounts or report profiles that
         break the rules—reports are reviewed by the platform team.
       </p>
       <div className="mt-3 flex flex-wrap items-start gap-x-4 gap-y-2">

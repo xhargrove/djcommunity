@@ -30,8 +30,8 @@ export default async function AccountDataPage() {
   }
 
   const pendingRequest = await getPendingDeletionRequestForProfile(profile.id);
-  const deletionHref = supportMailto("Account deletion request — DJ Community Network");
-  const exportHref = supportMailto("Data access / export question — DJ Community Network");
+  const deletionHref = supportMailto("Account deletion request — MixerHQ");
+  const exportHref = supportMailto("Data access / export question — MixerHQ");
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-8">

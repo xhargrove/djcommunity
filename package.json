@@ -12,7 +12,12 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "ci": "npm run lint && npm run typecheck && npm test"
+    "ci": "npm run lint && npm run typecheck && npm test",
+    "execute:account-deletion": "tsx --env-file=.env.local scripts/execute-account-deletion.ts",
+    "reconcile:account-deletion": "tsx --env-file=.env.local scripts/reconcile-account-deletion.ts",
+    "ops:account-deletion": "tsx --env-file=.env.local scripts/account-deletion-ops-snapshot.ts",
+    "digest:account-deletion": "tsx --env-file=.env.local scripts/account-deletion-ops-digest.ts",
+    "digest:account-deletion:ci": "tsx scripts/account-deletion-ops-digest.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -35,6 +40,7 @@
     "postcss": "^8.5.3",
     "server-only": "^0.0.1",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "vitest": "^3.1.4"
   }

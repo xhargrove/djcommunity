@@ -4,7 +4,7 @@ test.describe("public routes", () => {
   test("landing shows product title", async ({ page }) => {
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: "DJ Community Network" }),
+      page.getByRole("heading", { name: "MixerHQ" }),
     ).toBeVisible();
   });
 

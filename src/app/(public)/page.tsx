@@ -11,18 +11,18 @@ export async function generateMetadata(): Promise<Metadata> {
   const site = getSiteOrigin();
   const canonical = site ? `${site}${ROUTES.root}` : undefined;
   return {
-    title: "DJ Community Network",
+    title: "MixerHQ",
     description: defaultDescription,
     alternates: canonical ? { canonical } : undefined,
     openGraph: {
       type: "website",
-      title: "DJ Community Network",
+      title: "MixerHQ",
       description: defaultDescription,
       url: canonical,
     },
     twitter: {
       card: "summary_large_image",
-      title: "DJ Community Network",
+      title: "MixerHQ",
       description: defaultDescription,
     },
   };
@@ -33,7 +33,7 @@ export default function LandingPage() {
     <div className="flex min-h-dvh flex-col items-center justify-center gap-8 px-4">
       <div className="max-w-md text-center">
         <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-          DJ Community Network
+          MixerHQ
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
           Sign in to continue. New accounts can register from the sign-up page.

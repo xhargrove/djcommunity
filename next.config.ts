@@ -25,6 +25,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/discover", destination: "/explore", permanent: true },
       { source: "/discover/:path*", destination: "/explore/:path*", permanent: true },
+      // Browsers default to /favicon.ico; serve the SVG icon without duplicating binary ICO.
+      { source: "/favicon.ico", destination: "/icon.svg", permanent: false },
     ];
   },
   experimental: {

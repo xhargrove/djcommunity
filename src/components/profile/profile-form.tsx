@@ -171,7 +171,7 @@ export function ProfileForm({
           <ul className="mt-2 list-inside list-disc space-y-1.5 text-xs leading-relaxed text-amber-900/90">
             <li>City powers Explore and local scene discovery—not a generic location field.</li>
             <li>Genres and DJ type help other DJs and rooms surface you in context.</li>
-            <li>Your handle is your @ on DJCN; add avatar and banner right after this step.</li>
+            <li>Your handle is your @ on MixerHQ; add avatar and banner right after this step.</li>
           </ul>
         </div>
       ) : null}
