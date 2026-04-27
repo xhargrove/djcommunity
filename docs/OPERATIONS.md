@@ -12,6 +12,13 @@ Concise runbook for running the app, CI, moderation, and staging checks.
 | **Search indexing** | Policy in `src/lib/meta/indexing.ts`. **Production Vercel** (`VERCEL_ENV=production`, `NODE_ENV=production`) allows indexing of **public** routes only; **preview** and **Vercel development** deployments are `noindex` + `robots.txt` disallow all. Non-Vercel production hosts must set **`NEXT_PUBLIC_ALLOW_SEARCH_INDEXING=true`**. Kill switches: **`NEXT_PUBLIC_INDEXING_DISABLED=true`** or **`NEXT_PUBLIC_SITE_INDEXING=off`**. `robots.txt` / `sitemap.xml` are gated the same way. |
 | **Support / abuse mail** | Optional **`NEXT_PUBLIC_SUPPORT_CONTACT_EMAIL`** and **`NEXT_PUBLIC_ABUSE_CONTACT_EMAIL`** for `/contact` and mailto links on `/settings/data`. |
 
+## Native (Expo) app
+
+- **Location:** `apps/mobile` — its own `package.json` / `node_modules` (keeps Expo’s React separate from the Next.js app at the repo root).
+- **Env:** Copy `apps/mobile/.env.example` → `apps/mobile/.env`. Use the **same** Supabase project as the web app: map `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` to **`EXPO_PUBLIC_SUPABASE_*`**. Restart `expo start` after changes.
+- **Run:** From repo root, `npm run mobile:start`, or `npm run mobile:ios` / `npm run mobile:android`. Typecheck: `npm run mobile:typecheck`.
+- **Deep links:** `app.json` sets **`scheme`: `mixerhq`** (`mixerhq://`). Add matching redirect URLs in Supabase Auth when you wire magic link / OAuth for native.
+
 ## Site owner bootstrap
 
 - The first **owner** role is expected to be set in the database (see migration comments in `site_wide_roles` / admin team flow) or via SQL before `/admin/team` is usable.
